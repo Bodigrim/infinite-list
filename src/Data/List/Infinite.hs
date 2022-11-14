@@ -172,7 +172,15 @@ import Data.List.Infinite.Zip
 
 -- | Right-associative fold of an infinite list, necessarily lazy in the accumulator.
 -- Any unconditional attempt to force the accumulator even to WHNF
--- will hang the computation.
+-- will hang the computation. E. g., the following definition isn't productive:
+--
+-- > import Data.List.NonEmpty (NonEmpty(..))
+-- > toNonEmpty = foldr1 (\a (x :| xs) -> a :| x : xs) :: Infinite a -> NonEmpty a
+--
+-- One should use lazy patterns, e. g.,
+--
+-- > toNonEmpty = foldr1 (\a ~(x :| xs) -> a :| x : xs)
+--
 foldr1 :: (a -> b -> b) -> Infinite a -> b
 foldr1 f = go
   where
@@ -312,9 +320,11 @@ instance Applicative Infinite where
 #endif
 
 -- | 'Control.Applicative.ZipList' cannot be made a lawful 'Monad',
--- but 'Infinite', being a @Representable@, can. Namely, 'Control.Monad.join'
+-- but 'Infinite', being a
+-- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>,
+-- can. Namely, 'Control.Monad.join'
 -- picks up a diagonal of an infinite matrix of 'Infinite' ('Infinite' @a@).
--- This is mostly useful for list comprehensions once
+-- This is mostly useful for parallel list comprehensions once
 -- @{\-# LANGUAGE MonadComprehensions #-\}@ is enabled.
 instance Monad Infinite where
   xs >>= f = go 0 xs
@@ -418,7 +428,9 @@ intercalate ~(a :| as) = foldr1 (\xs -> prependList xs . (a :<) . prependList as
 
 -- | Transpose rows and columns of an argument.
 --
--- This is actually @distribute@ from @Distributive@ type class in disguise.
+-- This is actually @distribute@ from
+-- <https://hackage.haskell.org/package/distributive/docs/Data-Distributive.html#t:Distributive Distributive>
+-- type class in disguise.
 transpose :: Functor f => f (Infinite a) -> Infinite (f a)
 transpose xss = fmap head xss :< transpose (fmap tail xss)
 
@@ -498,7 +510,8 @@ scanlFB' f cons = \elt g -> oneShot (\x -> let !elt' = f x elt in elt' `cons` g 
 scanl1 :: (a -> a -> a) -> Infinite a -> Infinite a
 scanl1 f (x :< xs) = scanl f x xs
 
--- |
+-- | If you are looking how to traverse with a state, look no further:
+--
 -- > mapAccumL f acc0 (x1 :< x2 :< ...) =
 -- >   let (acc1, y1) = f acc0 x1 in
 -- >     let (acc2, y2) = f acc1 x2 in
@@ -622,7 +635,8 @@ unfoldr f = go
 
 -- | Generate an infinite list of @f@ 0, @f@ 1, @f@ 2...
 --
--- 'tabulate' and '(!!)' witness that 'Infinite' is @Representable@.
+-- 'tabulate' and '(!!)' witness that 'Infinite' is
+-- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>.
 tabulate :: (Word -> a) -> Infinite a
 tabulate f = unfoldr (\n -> (f n, n + 1)) 0
 {-# INLINE tabulate #-}
@@ -714,6 +728,9 @@ takeWhileFB p cons nil = \x r -> if p x then x `cons` r else nil
   #-}
 
 -- | Drop the longest prefix satisfying a predicate.
+--
+-- This function isn't productive (e. g., 'head' . 'dropWhile' @f@ won't terminate),
+-- if all elements of the input list satisfy the predicate.
 dropWhile :: (a -> Bool) -> Infinite a -> Infinite a
 dropWhile p = go
   where
@@ -722,6 +739,10 @@ dropWhile p = go
       | otherwise = xxs
 
 -- | Split an infinite list into the longest prefix satisfying a predicate and the rest.
+--
+-- This function isn't productive in the second component of the tuple
+-- (e. g., 'head' . 'snd' . 'span' @f@ won't terminate),
+-- if all elements of the input list satisfy the predicate.
 span :: (a -> Bool) -> Infinite a -> ([a], Infinite a)
 span p = go
   where
@@ -730,6 +751,10 @@ span p = go
       | otherwise = ([], xxs)
 
 -- | Split an infinite list into the longest prefix /not/ satisfying a predicate and the rest.
+--
+-- This function isn't productive in the second component of the tuple
+-- (e. g., 'head' . 'snd' . 'break' @f@ won't terminate),
+-- if no elements of the input list satisfy the predicate.
 break :: (a -> Bool) -> Infinite a -> ([a], Infinite a)
 break = span . (not .)
 
@@ -802,6 +827,9 @@ find :: (a -> Bool) -> Infinite a -> a
 find f = foldr1 (\a a' -> if f a then a else a')
 
 -- | Filter an infinite list, removing elements which does not satisfy a predicate.
+--
+-- This function isn't productive (e. g., 'head' . 'filter' @f@ won't terminate),
+-- if no elements of the input list satisfy the predicate.
 filter :: (a -> Bool) -> Infinite a -> Infinite a
 filter f = foldr1 (\a -> if f a then (a :<) else id)
 
@@ -828,6 +856,12 @@ filterFB cons f x r
 
 -- | Split an infinite list into two infinite lists: the first one contains elements,
 -- satisfying a predicate, and the second one the rest.
+--
+-- This function isn't productive in the first component of the tuple
+-- (e. g., 'head' . 'Data.Tuple.fst' . 'partition' @f@ won't terminate),
+-- if no elements of the input list satisfy the predicate.
+-- Same for the second component,
+-- if all elements of the input list satisfy the predicate.
 partition :: (a -> Bool) -> Infinite a -> (Infinite a, Infinite a)
 partition f = foldr1 (\a -> if f a then first (a :<) else second (a :<))
 
@@ -835,7 +869,9 @@ partition f = foldr1 (\a -> if f a then first (a :<) else second (a :<))
 -- On contrary to @Data.List.@'List.!!', this function takes 'Word' instead of 'Int'
 -- to avoid 'Prelude.error' on negative arguments.
 --
--- This is actually @index@ from @Representable@ type class in disguise.
+-- This is actually @index@ from
+-- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>
+-- type class in disguise.
 (!!) :: Infinite a -> Word -> a
 (!!) = flip go
   where
@@ -850,6 +886,9 @@ elemIndex :: Eq a => a -> Infinite a -> Word
 elemIndex = findIndex . (==)
 
 -- | Return indices of all elements, equal to a given.
+--
+-- This function isn't productive (e. g., 'head' . 'elemIndices' @f@ won't terminate),
+-- if no elements of the input list are equal the given one.
 elemIndices :: Eq a => a -> Infinite a -> Infinite Word
 elemIndices = findIndices . (==)
 
@@ -863,6 +902,9 @@ findIndex f = go 0
       | otherwise = go (n + 1) xs
 
 -- | Return indices of all elements, satisfying a predicate.
+--
+-- This function isn't productive (e. g., 'head' . 'elemIndices' @f@ won't terminate),
+-- if no elements of the input list satisfy the predicate.
 findIndices :: (a -> Bool) -> Infinite a -> Infinite Word
 findIndices f = go 0
   where
