@@ -11,7 +11,7 @@ Modern lightweight library for infinite lists with fusion:
 
 ```haskell
 {-# LANGUAGE PostfixOperators #-}
-import Data.List.Infinite (Infinite(..), (...))
+import Data.List.Infinite (Infinite(..), (...), (....))
 import qualified Data.List.Infinite as Inf
 ```
 

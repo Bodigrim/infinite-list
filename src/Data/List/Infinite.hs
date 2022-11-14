@@ -24,7 +24,7 @@
 --
 -- @
 -- {\-# LANGUAGE PostfixOperators #-\}
--- import Data.List.Infinite (Infinite(..), (...))
+-- import Data.List.Infinite (Infinite(..), (...), (....))
 -- import qualified Data.List.Infinite as Inf
 -- @
 module Data.List.Infinite (
