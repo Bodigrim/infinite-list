@@ -30,6 +30,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import Numeric.Natural
+import Data.Tuple (swap)
 
 instance Arbitrary a => Arbitrary (Infinite a) where
   arbitrary = (:<) <$> arbitrary <*> arbitrary
@@ -124,6 +125,24 @@ main = defaultMain $ testGroup "All"
       trim (I.map snd (I.filter fst (I.zip (I.cycle (False :| [True])) (I.interleave xs ys)))) == trim ys
   , testProperty "interleave laziness" $
     I.head (I.interleave ('a' :< undefined) undefined) == 'a'
+
+  , testProperty "interleave . uninterleave = id" $
+    \(Blind (lrs :: Infinite Int)) ->
+      trim ((uncurry I.interleave . I.uninterleave) lrs) == trim lrs
+  , testProperty "uninterleave . interleave = id" $
+    \(Blind (ls :: Infinite Int)) (Blind (rs :: Infinite Int)) ->
+      let (ls', rs') = I.uninterleave $ I.interleave ls rs
+       in trim ls == trim ls' && trim rs == trim rs'
+  , testProperty "uninterleave lazy" $
+    let (ls, rs) = I.uninterleave ('a' :< 'b' :< undefined)
+     in I.head ls == 'a' && I.head rs == 'b'
+
+  , testProperty "interswap . interswap = id" $
+    \(Blind (lrs :: Infinite Int)) ->
+      trim ((I.interswap . I.interswap) lrs) == trim lrs
+  , testProperty "interswap = uncurry interleave . swap . uninterleave" $
+    \(Blind (lrs :: Infinite Int)) ->
+      trim (I.interswap lrs) == trim ((uncurry I.interleave . swap . I.uninterleave) lrs)
 
   , testProperty "transpose []" $
     \(fmap getBlind -> xss :: [Infinite Int]) -> not (null xss) ==>

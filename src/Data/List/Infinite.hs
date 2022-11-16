@@ -51,6 +51,8 @@ module Data.List.Infinite (
   intersperse,
   intercalate,
   interleave,
+  uninterleave,
+  interswap,
   transpose,
   subsequences,
   subsequences1,
@@ -402,6 +404,28 @@ concatMap f = foldr1 (\a acc -> let (x :| xs) = f a in x :< (xs `prependList` ac
 -- | Interleave two infinite lists.
 interleave :: Infinite a -> Infinite a -> Infinite a
 interleave (x :< xs) ys = x :< interleave ys xs
+
+-- | The inverse operation of interleave.
+uninterleave :: Infinite a -> (Infinite a, Infinite a)
+uninterleave lrs = (uninterleaveL lrs, uninterleaveR lrs)
+
+-- This might seem wierd, but it is important for performance that:
+-- 1) We do the left/right halves separately
+-- 2) They are top-level definitions
+--
+uninterleaveL :: Infinite a -> Infinite a
+uninterleaveL (l :< _ :< ls) = l :< uninterleaveL ls
+
+uninterleaveR :: Infinite a -> Infinite a
+uninterleaveR (_ :< r :< rs) = r :< uninterleaveR rs
+
+-- | `interswap = uncurry interleave . swap . uninterleave`
+interswap :: Infinite a -> Infinite a
+interswap (l :< r :< lrs) = r :< l :< interswap lrs
+
+-- If you don't need the head of the list, use `tail` instead:
+-- interswap ABABABABAB --> BABABABABA
+-- tail      ABABABABAB --> BABABABAB
 
 -- | Insert an element between adjacent elements of an infinite list.
 intersperse :: a -> Infinite a -> Infinite a
