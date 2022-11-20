@@ -402,7 +402,7 @@ concatMap f = foldr1 (\a acc -> let (x :| xs) = f a in x :< (xs `prependList` ac
 
 -- | Interleave two infinite lists.
 interleave :: Infinite a -> Infinite a -> Infinite a
-interleave (l :< ls) ~(r :< rs) = l :< r :< interleave ls rs
+interleave (x :< xs) ys = x :< interleave ys xs
 
 -- | The inverse operation of interleave.
 uninterleave :: Infinite a -> (Infinite a, Infinite a)
