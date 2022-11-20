@@ -30,7 +30,6 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import Numeric.Natural
-import Data.Tuple (swap)
 
 instance Arbitrary a => Arbitrary (Infinite a) where
   arbitrary = (:<) <$> arbitrary <*> arbitrary
