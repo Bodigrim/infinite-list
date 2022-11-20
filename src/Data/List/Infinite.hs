@@ -416,7 +416,7 @@ uninterleaveL :: Infinite a -> Infinite a
 uninterleaveL (l :< ~(_ :< ls)) = l :< uninterleaveL ls
 
 uninterleaveR :: Infinite a -> Infinite a
-uninterleaveR (_ :< r :< rs) = r :< uninterleaveR rs
+uninterleaveR s = uninterleaveL (tail s)
 
 -- | Insert an element between adjacent elements of an infinite list.
 intersperse :: a -> Infinite a -> Infinite a
