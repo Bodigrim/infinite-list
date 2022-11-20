@@ -137,13 +137,6 @@ main = defaultMain $ testGroup "All"
     let (ls, rs) = I.uninterleave ('a' :< 'b' :< undefined)
      in I.head ls == 'a' && I.head rs == 'b'
 
-  , testProperty "interswap . interswap = id" $
-    \(Blind (lrs :: Infinite Int)) ->
-      trim ((I.interswap . I.interswap) lrs) == trim lrs
-  , testProperty "interswap = uncurry interleave . swap . uninterleave" $
-    \(Blind (lrs :: Infinite Int)) ->
-      trim (I.interswap lrs) == trim ((uncurry I.interleave . swap . I.uninterleave) lrs)
-
   , testProperty "transpose []" $
     \(fmap getBlind -> xss :: [Infinite Int]) -> not (null xss) ==>
       trim (I.transpose xss) == L.transpose (map trim xss)

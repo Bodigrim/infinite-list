@@ -52,7 +52,6 @@ module Data.List.Infinite (
   intercalate,
   interleave,
   uninterleave,
-  interswap,
   transpose,
   subsequences,
   subsequences1,
@@ -418,14 +417,6 @@ uninterleaveL (l :< _ :< ls) = l :< uninterleaveL ls
 
 uninterleaveR :: Infinite a -> Infinite a
 uninterleaveR (_ :< r :< rs) = r :< uninterleaveR rs
-
--- | `interswap = uncurry interleave . swap . uninterleave`
-interswap :: Infinite a -> Infinite a
-interswap (l :< r :< lrs) = r :< l :< interswap lrs
-
--- If you don't need the head of the list, use `tail` instead:
--- interswap ABABABABAB --> BABABABABA
--- tail      ABABABABAB --> BABABABAB
 
 -- | Insert an element between adjacent elements of an infinite list.
 intersperse :: a -> Infinite a -> Infinite a
