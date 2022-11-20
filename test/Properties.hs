@@ -136,6 +136,12 @@ main = defaultMain $ testGroup "All"
   , testProperty "uninterleave lazy" $
     let (ls, rs) = I.uninterleave ('a' :< 'b' :< undefined)
      in I.head ls == 'a' && I.head rs == 'b'
+  , testProperty "uninterleave left-lazy" $
+    let (ls, _) = I.uninterleave ('a' :< undefined)
+     in I.head ls == 'a'
+  , testProperty "uninterleave right-lazy" $
+    let (_, rs) = I.uninterleave (undefined :< 'b' :< undefined)
+     in I.head rs == 'b'
 
   , testProperty "transpose []" $
     \(fmap getBlind -> xss :: [Infinite Int]) -> not (null xss) ==>

@@ -413,7 +413,7 @@ uninterleave lrs = (uninterleaveL lrs, uninterleaveR lrs)
 -- 2) They are top-level definitions
 --
 uninterleaveL :: Infinite a -> Infinite a
-uninterleaveL (l :< _ :< ls) = l :< uninterleaveL ls
+uninterleaveL (l :< ~(_ :< ls)) = l :< uninterleaveL ls
 
 uninterleaveR :: Infinite a -> Infinite a
 uninterleaveR (_ :< r :< rs) = r :< uninterleaveR rs
