@@ -424,6 +424,14 @@ main = defaultMain $ testGroup "All"
         , pre3 == [   ], cyc3 == NE.fromList [3,4]
         ]
 
+  , testProperty "uncycle cyclic cycle" $
+    case I.uncycle $ I.map snd $ I.uncycle $ I.cycle $ NE.fromList [1,1,(2 :: Int)] of
+      (pre0,cyc0) :< (pre1,cyc1) :< _ -> and
+        [ null pre0, null pre1
+        , cyc0 == cyc1
+        , join cyc0 == NE.fromList [1,1,2]
+        ]
+
   , testProperty "uncycle . cycle . nub" $
     \(Blind ((NE.nub->xs) :: NonEmpty Int)) ->
       case I.uncycle (I.cycle xs) of
