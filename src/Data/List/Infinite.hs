@@ -77,6 +77,7 @@ module Data.List.Infinite (
   span,
   break,
   group,
+  uncycle,
   inits,
   inits1,
   tails,
@@ -158,6 +159,7 @@ import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
+import Data.Semigroup (Semigroup (..))
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
 import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
@@ -793,6 +795,25 @@ groupBy f = go
       where
         (ys, zs) = span (f x) xs
 
+uncycle :: Eq a => Infinite a -> Infinite ([a], NonEmpty a)
+uncycle s@(x:<xs) = (pre, cyc) :< uncycle rest
+  where
+    (pre, cyc, rest) = go 1 1 x xs
+
+    go π λ t (h:<hs)
+      | t == h = rollup nil nil `uncurry` splitAt λ s
+      | π == λ = go (π+π) 1 h hs
+      | let    = go π (λ+1) t hs
+
+    rollup f q (t:ts) (h:<hs)
+      | t == h      = (list f, t NE.:| (ts <> list q), h:<hs)
+      | let         = rollup (snoc f t) (snoc q h) ts hs
+    rollup f q _ hs = rollup f nil (list q) hs
+
+    snoc f a z = f (a:z)
+    list f     = f []
+    nil      z = z
+
 -- | Generate all prefixes of an infinite list.
 inits :: Infinite a -> Infinite [a]
 inits =
@@ -1076,3 +1097,5 @@ intersectBy eq xs ys = filter (\x -> List.any (eq x) ys) xs
 -- | Prepend a list to an infinite list.
 prependList :: [a] -> Infinite a -> Infinite a
 prependList = flip (F.foldr (:<))
+
+

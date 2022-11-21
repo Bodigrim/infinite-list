@@ -398,6 +398,51 @@ main = defaultMain $ testGroup "All"
       trim (I.group ys) == L.take 10 (NE.group (I.foldr1 (:) ys))
   , testProperty "group laziness" $
     NE.head (I.head (I.group ('q' :< undefined))) == 'q'
+
+  , testProperty "uncycle (repeat x)" $
+    \(Blind (x :: Int)) ->
+      case I.uncycle (I.repeat x) of
+        (pre0,cyc0) :< (pre1,cyc1) :< _ -> and
+          [ pre0 == []
+          , pre1 == []
+          , cyc0 == NE.fromList [x]
+          , cyc1 == cyc1
+          ]
+
+  , testProperty "uncycle (iterate f)" $
+    \(Blind (Positive x0 :: Positive Int)) (Blind (Positive y0 :: Positive Int)) ->
+      case () of
+        () -> and
+          [ pre0 == [1..x-1]
+          , cyc0 == NE.fromList [x..x+y]
+          , pre1 == []
+          , cyc1 == cyc0
+          ]
+          where
+            (x, y) = (x0+1, y0+1)
+
+            f n | n < x+y = n + 1 | let = x
+
+            (pre0, cyc0) :< (pre1, cyc1) :< _ = I.uncycle (I.iterate f 1)
+
+  , testProperty "uncycle prefix with cycle" $
+    case I.uncycle ([0,1,2,1,(2 :: Int)] `I.prependList` I.cycle (NE.fromList [3,4])) of
+      (pre0,cyc0) :< (pre1,cyc1) :< (pre2,cyc2) :<  (pre3,cyc3) :< _ -> and
+        [ pre0 == [0  ], cyc0 == NE.fromList [1,2]
+        , pre1 == [1,2], cyc1 == NE.fromList [3,4]
+        , pre2 == [   ], cyc2 == NE.fromList [3,4]
+        , pre3 == [   ], cyc3 == NE.fromList [3,4]
+        ]
+
+  , testProperty "uncycle . cycle . nub" $
+    \(Blind ((NE.nub->xs) :: NonEmpty Int)) ->
+      case I.uncycle (I.cycle xs) of
+        (pre0,cyc0) :< _ -> and
+          [ null pre0
+          , cyc0 == xs
+          ]
+
+
   , testProperty "nub" $
     \(Blind (ys :: Infinite (Large Int))) ->
       I.take 3 (I.nub ys) == L.take 3 (L.nub (I.foldr1 (:) ys))
