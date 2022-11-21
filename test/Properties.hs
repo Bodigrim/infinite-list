@@ -389,7 +389,7 @@ main = defaultMain $ testGroup "All"
           [ pre0 == []
           , pre1 == []
           , cyc0 == NE.fromList [x]
-          , cyc1 == cyc1
+          , cyc1 == cyc0
           ]
 
   , testProperty "uncycle (iterate f)" $
