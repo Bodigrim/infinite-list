@@ -772,21 +772,36 @@ stripPrefix (x : xs) (y :< ys)
 group :: Eq a => Infinite a -> Infinite (NonEmpty a)
 group = groupBy (==)
 
+-- | TODO: Documentation
 uncycle :: Eq a => Infinite a -> Infinite ([a], NonEmpty a)
 uncycle s@(x:<xs) = (pre, cyc) :< uncycle rest
   where
     (pre, cyc, rest) = go 1 1 x xs
 
+    -- ~O(2n). Brent's algorithm
+    --
+    -- λ is the length of the cycle
+    --
     go π λ t (h:<hs)
       | t == h = rollup nil nil `uncurry` splitAt λ s
       | π == λ = go (π+π) 1 h hs
       | let    = go π (λ+1) t hs
 
+    -- O(n exactly).
+    --
+    -- f    - prefix list
+    -- q ts - bankers queue, ts is the front
+    --
+    -- length (ts ++ list q) == λ
+    --
     rollup f q (t:ts) (h:<hs)
       | t == h      = (list f, t NE.:| (ts <> list q), h:<hs)
       | let         = rollup (snoc f t) (snoc q h) ts hs
     rollup f q _ hs = rollup f nil (list q) hs
 
+    -- For O(1) snocs to avoid `reverse`, allows lazily consuming the
+    -- output lists
+    --
     snoc f a z = f (a:z)
     list f     = f []
     nil      z = z

@@ -408,7 +408,14 @@ main = defaultMain $ testGroup "All"
 
             (pre0, cyc0) :< (pre1, cyc1) :< _ = I.uncycle (I.iterate f 1)
 
-  , testProperty "uncycle prefix with cycle" $
+  , testProperty "uncycle prefix and cycle" $
+    case I.uncycle ([0,1,(2 :: Int)] `I.prependList` I.cycle (NE.fromList [3,4])) of
+      (pre0,cyc0) :< (pre1,cyc1) :< _ -> and
+        [ pre0 == [0,1,2], cyc0 == NE.fromList [3,4]
+        , pre1 == [     ], cyc1 == NE.fromList [3,4]
+        ]
+
+  , testProperty "uncycle cyclic prefix and cycle" $
     case I.uncycle ([0,1,2,1,(2 :: Int)] `I.prependList` I.cycle (NE.fromList [3,4])) of
       (pre0,cyc0) :< (pre1,cyc1) :< (pre2,cyc2) :<  (pre3,cyc3) :< _ -> and
         [ pre0 == [0  ], cyc0 == NE.fromList [1,2]
