@@ -424,6 +424,12 @@ main = defaultMain $ testGroup "All"
           [ null pre0
           , cyc0 == xs
           ]
+
+  , testProperty "uncycle laziness" $
+      case I.uncycle ('a' :< 'a' :< undefined) of
+        ([], 'a' NE.:| []) :< _ -> True
+        _ -> False
+
   , testProperty "nub" $
     \(Blind (ys :: Infinite (Large Int))) ->
       I.take 3 (I.nub ys) == L.take 3 (L.nub (I.foldr1 (:) ys))
