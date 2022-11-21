@@ -158,6 +158,7 @@ import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
+import Data.Semigroup (Semigroup (..))
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
 import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
