@@ -139,6 +139,7 @@ module Data.List.Infinite (
   unionBy,
   intersectBy,
   groupBy,
+  uncycleBy,
   insertBy,
   genericTake,
   genericDrop,
@@ -772,9 +773,21 @@ stripPrefix (x : xs) (y :< ys)
 group :: Eq a => Infinite a -> Infinite (NonEmpty a)
 group = groupBy (==)
 
--- | TODO: Documentation
+
+-- | Overloaded version of 'group'.
+groupBy :: (a -> a -> Bool) -> Infinite a -> Infinite (NonEmpty a)
+groupBy f = go
+  where
+    go (x :< xs) = (x :| ys) :< go zs
+      where
+        (ys, zs) = span (f x) xs
+
 uncycle :: Eq a => Infinite a -> Infinite ([a], NonEmpty a)
-uncycle s@(x:<xs) = (pre, cyc) :< uncycle rest
+uncycle = uncycleBy (==)
+
+-- | TODO: Documentation
+uncycleBy :: (a -> a -> Bool) -> Infinite a -> Infinite ([a], NonEmpty a)
+uncycleBy eq s@(x:<xs) = (pre, cyc) :< uncycleBy eq rest
   where
     (pre, cyc, rest) = go 1 1 x xs
 
@@ -783,9 +796,9 @@ uncycle s@(x:<xs) = (pre, cyc) :< uncycle rest
     -- λ is the length of the cycle
     --
     go π λ t (h:<hs)
-      | t == h = rollup nil nil `uncurry` splitAt λ s
-      | π == λ = go (π+π) 1 h hs
-      | let    = go π (λ+1) t hs
+      | t `eq` h = rollup nil nil `uncurry` splitAt λ s
+      | π == λ   = go (π+π) 1 h hs
+      | let      = go π (λ+1) t hs
 
     -- O(n exactly).
     --
@@ -795,7 +808,7 @@ uncycle s@(x:<xs) = (pre, cyc) :< uncycle rest
     -- length (ts ++ list q) == λ
     --
     rollup f q (t:ts) (h:<hs)
-      | t == h      = (list f, t NE.:| (ts <> list q), h:<hs)
+      | t `eq` h    = (list f, t NE.:| (ts <> list q), h:<hs)
       | let         = rollup (snoc f t) (snoc q h) ts hs
     rollup f q _ hs = rollup f nil (list q) hs
 
@@ -805,14 +818,6 @@ uncycle s@(x:<xs) = (pre, cyc) :< uncycle rest
     snoc f a z = f (a:z)
     list f     = f []
     nil      z = z
-
--- | Overloaded version of 'group'.
-groupBy :: (a -> a -> Bool) -> Infinite a -> Infinite (NonEmpty a)
-groupBy f = go
-  where
-    go (x :< xs) = (x :| ys) :< go zs
-      where
-        (ys, zs) = span (f x) xs
 
 -- | Generate all prefixes of an infinite list.
 inits :: Infinite a -> Infinite [a]
