@@ -5,6 +5,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE MagicHash #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
@@ -51,6 +53,7 @@ module Data.List.Infinite (
   intersperse,
   intercalate,
   interleave,
+  interleaveMany,
   transpose,
   subsequences,
   subsequences1,
@@ -159,7 +162,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
-import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
+import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||), undefined)
 
 #if MIN_VERSION_base(4,10,0)
 import GHC.Exts (oneShot)
@@ -402,6 +405,39 @@ concatMap f = foldr1 (\a acc -> let (x :| xs) = f a in x :< (xs `prependList` ac
 -- | Interleave two infinite lists.
 interleave :: Infinite a -> Infinite a -> Infinite a
 interleave (x :< xs) ys = x :< interleave ys xs
+
+-- | Interleave an infinite number of infinite lists.
+-- |   interleaveMany = foldr1 interleave
+interleaveMany :: Infinite (Infinite a) -> Infinite a
+
+-- `foldr1 interleave` makes the following pattern:
+--
+--   1 _ 2 _ 3 _ 4 _ 5 _ 6 _ 7 _ 8 _ 9 _ 10
+--     1   _   2   _   3   _   4   _   5
+--         1       _       2       _
+--                 1               _
+--                                 1
+--
+-- The depth of the number picked on the y-axis is just `ctz# x`.
+
+interleaveMany ss0 =
+  case GHC.Exts.newSmallArray# 64# undefined GHC.Exts.realWorld# of
+    (# st0, arr #) ->
+      case initialize 0# st0 ss0 of
+        st1 -> go 1## st1
+      where
+        initialize 64# st _ = st
+        initialize i   st (s :< ss) =
+          case GHC.Exts.writeSmallArray# arr i s st of
+            st' -> initialize (i GHC.Exts.+# 1#) st' ss
+
+        go n st1 =
+          case GHC.Exts.readSmallArray# arr i st1 of
+            (# st2, a :< as #) ->
+              case GHC.Exts.writeSmallArray# arr i as st2 of
+                st3 -> a :< go (n `GHC.Exts.plusWord#` 1##) st3
+          where
+            i = GHC.Exts.word2Int# (GHC.Exts.ctz# n)
 
 -- | Insert an element between adjacent elements of an infinite list.
 intersperse :: a -> Infinite a -> Infinite a
