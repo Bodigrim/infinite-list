@@ -53,7 +53,6 @@ module Data.List.Infinite (
   intersperse,
   intercalate,
   interleave,
-  interleaves,
   interleaveMany,
   transpose,
   subsequences,
@@ -406,14 +405,6 @@ concatMap f = foldr1 (\a acc -> let (x :| xs) = f a in x :< (xs `prependList` ac
 -- | Interleave two infinite lists.
 interleave :: Infinite a -> Infinite a -> Infinite a
 interleave (x :< xs) ys = x :< interleave ys xs
-
--- | Interleave N infinite lists.
-interleaves :: NonEmpty (Infinite a) -> Infinite a
-interleaves = go id . NE.toList where
-  go f ((a:<as):ass) =
-    a :< go (\z -> f (as:z)) ass
-  go f _ =
-    go id (f [])
 
 -- |   interleaveMany = foldr1 interleave
 interleaveMany :: NonEmpty (Infinite a) -> Infinite a
