@@ -89,3 +89,5 @@ benchmark infinite-bench
         base,
         infinite-list,
         tasty-bench
+    other-modules:
+        Uninterleave
