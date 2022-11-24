@@ -4,8 +4,11 @@ module Main where
 
 -- import qualified Data.List.Infinite as Inf
 import Test.Tasty.Bench
+import qualified Uncycle
 
 main :: IO ()
-main = defaultMain
+main = defaultMain $
   [
+  ] <> concat
+  [ Uncycle.benchmarks
   ]
