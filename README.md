@@ -8,6 +8,7 @@ Modern lightweight library for infinite lists with fusion:
 * Provide fusion framework.
 * Use `NonEmpty` where applicable.
 * Use `Word` for indices.
+* Be lazy, but not too lazy.
 
 ```haskell
 {-# LANGUAGE PostfixOperators #-}
@@ -44,3 +45,16 @@ The breakdown of members of `Foldable` is as follows:
 Altogether it means that code, polymorphic by `Foldable`, cannot confidently work with infinite lists. Even a trivial refactoring can get you in a deep trouble. It's better to save users from this pitfall and do not provide `instance Foldable` at all. We do provide a right fold however.
 
 Since there is no `Foldable`, there could be no `Traversable`. Even if it was not prohibited because of a missing superclass, there are only a few monads, which are lazy enough to be productive for infinite traversals. If you are looking for a traverse with a lazy state, use `mapAccumL`.
+
+## Laziness
+
+Operations, returning a data type with a single constructor, can be implemented in an extremely lazy fashion. Namely, always return the constructor before inspecting any of the arguments. For instance, note the irrefuttable pattern mathing in `Data.List.NonEmpty`:
+
+```haskell
+map :: (a -> b) -> NonEmpty a -> NonEmpty b
+map f ~(a :| as) = f a :| fmap f as
+```
+
+Because of it forcing the result to WHNF does not force any of the arguments, e. g., ``Data.List.NonEmpty.map undefined undefined `seq` 1`` returns `1`. This is not the case for normal lists: since there are two constructors, `map` has to inspect the argument before returning anything, and ``Data.List.map undefined undefined `seq` 1`` throws an error.
+
+While `Data.List.Infinite` has a single constructor, we believe that following the example of `Data.List.NonEmpty` is harmful for the majority of applications. Instead the laziness of the API is modelled on the laziness of respective operations on `Data.List`: a function `Data.List.Infinite.foo` operating over `Infinite a` is expected to have the same strictness properties as `Data.List.foo` operating over `[a]`. For instance, ``Data.List.Infinite.map undefined undefined `seq` 1`` diverges.
