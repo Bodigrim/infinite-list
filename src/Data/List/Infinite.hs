@@ -407,16 +407,12 @@ interleave (x :< xs) ys = x :< interleave ys xs
 -- | The inverse operation of interleave.
 uninterleave :: Infinite a -> (Infinite a, Infinite a)
 uninterleave lrs = (uninterleaveL lrs, uninterleaveR lrs)
+  where
+    uninterleaveL :: Infinite a -> Infinite a
+    uninterleaveL (l :< ls) = l :< uninterleaveR ls
 
--- This might seem wierd, but it is important for performance that:
--- 1) We do the left/right halves separately
--- 2) They are top-level definitions
---
-uninterleaveL :: Infinite a -> Infinite a
-uninterleaveL (l :< ~(_ :< ls)) = l :< uninterleaveL ls
-
-uninterleaveR :: Infinite a -> Infinite a
-uninterleaveR (_ :< r :< rs) = r :< uninterleaveR rs
+    uninterleaveR :: Infinite a -> Infinite a
+    uninterleaveR (_ :< rs) = uninterleaveL rs
 
 -- | Insert an element between adjacent elements of an infinite list.
 intersperse :: a -> Infinite a -> Infinite a
