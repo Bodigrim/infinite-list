@@ -159,7 +159,6 @@ import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
-import Data.Semigroup (Semigroup (..))
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
 import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
@@ -787,37 +786,25 @@ uncycle = uncycleBy (==)
 
 -- | TODO: Documentation
 uncycleBy :: (a -> a -> Bool) -> Infinite a -> Infinite ([a], NonEmpty a)
-uncycleBy eq s@(x:<xs) = (pre, cyc) :< uncycleBy eq rest
+uncycleBy eq s =
+    case rollup s (drop cy s) of
+      (l, r, ss) -> (l, r) :< uncycleBy eq ss
   where
-    (pre, cyc, rest) = go 1 1 x xs
-
     -- ~O(2n). Brent's algorithm
-    --
-    -- λ is the length of the cycle
-    --
     go π λ t (h:<hs)
-      | t `eq` h = rollup nil nil `uncurry` splitAt λ s
+      | t `eq` h = λ
       | π == λ   = go (π+π) 1 h hs
       | let      = go π (λ+1) t hs
 
     -- O(n exactly).
-    --
-    -- f    - prefix list
-    -- q ts - bankers queue, ts is the front
-    --
-    -- length (ts ++ list q) == λ
-    --
-    rollup f q (t:ts) (h:<hs)
-      | t `eq` h    = (list f, t NE.:| (ts <> list q), h:<hs)
-      | let         = rollup (snoc f t) (snoc q h) ts hs
-    rollup f q _ hs = rollup f nil (list q) hs
+    rollup (t:<ts) (h:<hs)
+      | t `eq` h
+      , (l,r) <- splitAt (cy-1) ts
+      = ([], t NE.:| l, r)
+      | (l,r,ss) <- rollup ts hs = (t:l, r, ss)
 
-    -- For O(1) snocs to avoid `reverse`, allows lazily consuming the
-    -- output lists
-    --
-    snoc f a z = f (a:z)
-    list f     = f []
-    nil      z = z
+    -- The length of the cycle
+    cy | x:<xs <- s = go 1 1 x xs
 
 -- | Generate all prefixes of an infinite list.
 inits :: Infinite a -> Infinite [a]
