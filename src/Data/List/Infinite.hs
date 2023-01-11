@@ -330,8 +330,18 @@ instance Applicative Infinite where
 instance Monad Infinite where
   xs >>= f = go 0 xs
     where
-      go n (y :< ys) = f y !! n :< go (n + 1) ys
+      go n (y :< ys) = (f y `index` n) :< go (n + 1) ys
+      index :: Infinite a -> Natural -> a
+      index ys n = (head . genericDrop n) ys
   (>>) = (*>)
+-- Note: effectively we implemented the Monad instance 
+-- via the isomorphism Infinite ~ (->) Natural. 
+-- indeed, @index@ above is one half of the iso, 
+-- its inverse being
+-- @unfoldr (\f -> (f 0,f.(+1)))@
+-- In fact an implementation via this iso is not much slower 
+-- than the current one. 
+-- See also 'tabulate'.
 
 -- | Get the first elements of an infinite list.
 head :: Infinite a -> a
@@ -709,6 +719,15 @@ genericDrop n
   where
     unsafeDrop 1 (_ :< xs) = xs
     unsafeDrop m (_ :< xs) = unsafeDrop (m - 1) xs
+
+-- In case the first argument to 'genericDrop' 
+-- is a thunk of the form 0 +1 +1 ... +1
+-- we should avoid calculating the intermediate indices.
+-- TODO: Add pragmas so that this rule actually fires.
+{-# RULES
+"genericDrop(n+1)" forall n x xs. 
+  genericDrop (n+1) (x :< xs) = genericDrop n xs
+#-}
 
 -- | Split an infinite list into a prefix of given length and the rest.
 splitAt :: Int -> Infinite a -> ([a], Infinite a)
