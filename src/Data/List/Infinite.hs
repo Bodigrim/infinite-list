@@ -330,7 +330,9 @@ instance Applicative Infinite where
 instance Monad Infinite where
   xs >>= f = go 0 xs
     where
-      go !n (y :< ys) = f y !! n :< go (n + 1) ys
+      go !n (y :< ys) = ((f y) `index` n) :< go (n + 1) ys
+      index :: Infinite a -> Natural -> a
+      index ys n = head (genericDrop n ys)
   {-# INLINE (>>=) #-}
   (>>) = (*>)
 
