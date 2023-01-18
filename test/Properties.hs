@@ -23,12 +23,14 @@ import Test.Tasty.QuickCheck as QC
 import Control.Applicative
 import Control.Monad
 import Data.Bifunctor
+import Data.Bits
 import qualified Data.List as L
 import Data.List.Infinite (Infinite(..))
 import qualified Data.List.Infinite as I
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
+import Data.Word (Word32)
 import Numeric.Natural
 import Prelude hiding (Applicative(..))
 
@@ -470,4 +472,9 @@ main = defaultMain $ testGroup "All"
       let zs = I.prependList xs (x :< ys) in
         let is = L.elemIndices x (xs ++ [x]) in
           map fromIntegral (I.take (length is) (I.elemIndices x zs)) == is
+
+  , testProperty ">>= 32bit" $
+    let ix = maxBound :: Word32 in
+      finiteBitSize (0 :: Word) /= 32 ||
+        I.head (I.tail (I.genericDrop ix (I.repeat () >>= const (False :< I.repeat True))))
   ]
