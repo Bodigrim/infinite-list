@@ -645,26 +645,27 @@ tabulate f = unfoldr (\n -> (f n, n + 1)) 0
 -- | Take a prefix of given length.
 take :: Int -> Infinite a -> [a]
 take = GHC.Exts.inline genericTake
-
-takeFB :: (elt -> lst -> lst) -> lst -> elt -> (Int -> lst) -> Int -> lst
-takeFB cons nil x xs = \m -> if m <= 1 then x `cons` nil else x `cons` xs (m - 1)
-
 {-# INLINE [1] take #-}
 
-{-# INLINE [0] takeFB #-}
+{-# INLINE [1] genericTake #-}
+
+{-# INLINE [0] genericTakeFB #-}
 
 {-# RULES
-"take" [~1] forall n xs.
-  take n xs =
+"take"
+  take =
+    genericTake
+"genericTake" [~1] forall n xs.
+  genericTake n xs =
     GHC.Exts.build
       ( \cons nil ->
           if n >= 1
-            then foldr (takeFB cons nil) xs n
+            then foldr (genericTakeFB cons nil) xs n
             else nil
       )
-"takeList" [1] forall n xs.
-  foldr (takeFB (:) []) xs n =
-    take n xs
+"genericTakeList" [1] forall n xs.
+  foldr (genericTakeFB (:) []) xs n =
+    genericTake n xs
   #-}
 
 -- | Take a prefix of given length.
@@ -676,29 +677,33 @@ genericTake n
     unsafeTake 1 (x :< _) = [x]
     unsafeTake m (x :< xs) = x : unsafeTake (m - 1) xs
 
+genericTakeFB :: Integral i => (elt -> lst -> lst) -> lst -> elt -> (i -> lst) -> i -> lst
+genericTakeFB cons nil x xs = \m -> if m <= 1 then x `cons` nil else x `cons` xs (m - 1)
+
 -- | Drop a prefix of given length.
 drop :: Int -> Infinite a -> Infinite a
 drop = GHC.Exts.inline genericDrop
-
-dropFB :: (elt -> lst -> lst) -> elt -> (Int -> lst) -> Int -> lst
-dropFB cons x xs = \m -> if m < 1 then x `cons` xs m else xs (m - 1)
-
 {-# INLINE [1] drop #-}
 
-{-# INLINE [0] dropFB #-}
+{-# INLINE [1] genericDrop #-}
+
+{-# INLINE [0] genericDropFB #-}
 
 {-# RULES
-"drop" [~1] forall n xs.
-  drop n xs =
+"drop"
+  drop =
+    genericDrop
+"genericDrop" [~1] forall n xs.
+  genericDrop n xs =
     build
       ( \cons ->
           if n >= 1
-            then foldr (dropFB cons) xs n
+            then foldr (genericDropFB cons) xs n
             else foldr cons xs
       )
-"dropList" [1] forall n xs.
-  foldr (dropFB (:<)) xs n =
-    drop n xs
+"genericDropList" [1] forall n xs.
+  foldr (genericDropFB (:<)) xs n =
+    genericDrop n xs
   #-}
 
 -- | Drop a prefix of given length.
@@ -709,6 +714,9 @@ genericDrop n
   where
     unsafeDrop 1 (_ :< xs) = xs
     unsafeDrop m (_ :< xs) = unsafeDrop (m - 1) xs
+
+genericDropFB :: Integral i => (elt -> lst -> lst) -> elt -> (i -> lst) -> i -> lst
+genericDropFB cons x xs = \m -> if m < 1 then x `cons` xs m else xs (m - 1)
 
 -- | Split an infinite list into a prefix of given length and the rest.
 splitAt :: Int -> Infinite a -> ([a], Infinite a)

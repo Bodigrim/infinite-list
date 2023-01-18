@@ -70,6 +70,9 @@ takeRepeat x = I.take x (I.repeat x)
 takeDropRepeat :: Int -> [Int]
 takeDropRepeat x = I.take x (I.drop x (I.repeat x))
 
+genericTakeGenericDropRepeat :: Word -> [Word]
+genericTakeGenericDropRepeat x = I.genericTake x (I.genericDrop x (I.repeat x))
+
 takeWhileIterate :: Int -> [Int]
 takeWhileIterate x = I.takeWhile (< 10) (I.iterate (+ 1) x)
 
@@ -262,6 +265,7 @@ main = defaultMain $ testGroup "All"
   , $(inspectTest $ 'foldrScanl' `hasNoType` ''Word)
   , $(inspectTest $ 'takeRepeat `hasNoType` ''Infinite)
   , $(inspectTest $ 'takeDropRepeat `hasNoType` ''Infinite)
+  , $(inspectTest $ 'genericTakeGenericDropRepeat `hasNoType` ''Infinite)
   , $(inspectTest $ 'takeWhileIterate `hasNoType` ''Infinite)
   , $(inspectTest $ 'takeWhileDropWhileIterate `hasNoType` ''Infinite)
   , $(inspectTest $ 'foldrCycle `hasNoType` ''Infinite)
