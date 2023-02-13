@@ -733,6 +733,7 @@ genericSplitAt n
   where
     unsafeSplitAt 1 (x :< xs) = ([x], xs)
     unsafeSplitAt m (x :< xs) = first (x :) (unsafeSplitAt (m - 1) xs)
+{-# INLINEABLE genericSplitAt #-}
 
 -- | Take the longest prefix satisfying a predicate.
 takeWhile :: (a -> Bool) -> Infinite a -> [a]
