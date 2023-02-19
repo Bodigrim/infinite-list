@@ -9,6 +9,9 @@ module Data.List.Infinite.Internal (
 ) where
 
 -- | Type of infinite lists.
+--
+-- In terms of recursion schemes, 'Infinite' @a@ is a fix point of the base functor @(a,)@,
+-- 'Data.List.Infinite.foldr' is a catamorphism and 'Data.List.Infinite.unfoldr' is an anamorphism.
 data Infinite a = a :< Infinite a
 
 infixr 5 :<

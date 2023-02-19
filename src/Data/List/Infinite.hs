@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
@@ -158,6 +157,7 @@ import Data.Functor (Functor (..))
 import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
+import Data.Maybe (maybe)
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
@@ -182,6 +182,8 @@ import Data.List.Infinite.Zip
 -- One should use lazy patterns, e. g.,
 --
 -- > toNonEmpty = foldr (\a ~(x :| xs) -> a :| x : xs)
+--
+-- This is a catamorphism on infinite lists.
 foldr :: (a -> b -> b) -> Infinite a -> b
 foldr f = go
   where
@@ -196,6 +198,13 @@ foldr f = go
   foldr cons (x :< build g) =
     cons x (g cons)
   #-}
+
+-- | Paramorphism on infinite lists.
+para :: forall a b. (a -> Infinite a -> b -> b) -> Infinite a -> b
+para f = go
+  where
+    go :: Infinite a -> b
+    go (x :< xs) = f x xs (go xs)
 
 -- | Convert to a list. Use 'cycle' to go in another direction.
 toList :: Infinite a -> [a]
@@ -330,7 +339,7 @@ instance Applicative Infinite where
 instance Monad Infinite where
   xs >>= f = go 0 xs
     where
-      go !n (y :< ys) = ((f y) `index` n) :< go (n + 1) ys
+      go !n (y :< ys) = (f y `index` n) :< go (n + 1) ys
       index :: Infinite a -> Natural -> a
       index ys n = head (genericDrop n ys)
   {-# INLINE (>>=) #-}
@@ -444,9 +453,12 @@ subsequences = ([] :<) . map NE.toList . subsequences1
 
 -- | Generate an infinite list of all non-empty subsequences of the argument.
 subsequences1 :: Infinite a -> Infinite (NonEmpty a)
-subsequences1 (x :< xs) = (x :| []) :< foldr f (subsequences1 xs)
+subsequences1 = foldr go
   where
-    f ys r = ys :< (x `NE.cons` ys) :< r
+    go :: a -> Infinite (NonEmpty a) -> Infinite (NonEmpty a)
+    go x sxs = (x :| []) :< foldr f sxs
+      where
+        f ys r = ys :< (x `NE.cons` ys) :< r
 
 -- | Generate an infinite list of all permutations of the argument.
 permutations :: Infinite a -> Infinite (Infinite a)
@@ -467,9 +479,7 @@ permutations xs0 = xs0 :< perms xs0 []
 -- |
 -- > scanl f acc (x1 :< x2 :< ...) = acc :< f acc x1 :< f (f acc x1) x2 :< ...
 scanl :: (b -> a -> b) -> b -> Infinite a -> Infinite b
-scanl f = go
-  where
-    go z ~(x :< xs) = z :< go (f z x) xs
+scanl f z0 = (z0 :<) . flip (foldr (\x acc z -> let fzx = f z x in fzx :< acc fzx)) z0
 
 scanlFB :: (elt' -> elt -> elt') -> (elt' -> lst -> lst) -> elt -> (elt' -> lst) -> elt' -> lst
 scanlFB f cons = \elt g -> oneShot (\x -> let elt' = f x elt in elt' `cons` g elt')
@@ -489,9 +499,7 @@ scanlFB f cons = \elt g -> oneShot (\x -> let elt' = f x elt in elt' `cons` g el
 
 -- | Same as 'scanl', but strict in accumulator.
 scanl' :: (b -> a -> b) -> b -> Infinite a -> Infinite b
-scanl' f = go
-  where
-    go !z ~(x :< xs) = z :< go (f z x) xs
+scanl' f z0 = (z0 :<) . flip (foldr (\x acc z -> let !fzx = f z x in fzx :< acc fzx)) z0
 
 scanlFB' :: (elt' -> elt -> elt') -> (elt' -> lst -> lst) -> elt -> (elt' -> lst) -> elt' -> lst
 scanlFB' f cons = \elt g -> oneShot (\x -> let !elt' = f x elt in elt' `cons` g elt')
@@ -522,11 +530,7 @@ scanl1 f (x :< xs) = scanl f x xs
 -- >       ...
 -- >         y1 :< y2 :< ...
 mapAccumL :: (acc -> x -> (acc, y)) -> acc -> Infinite x -> Infinite y
-mapAccumL f = go
-  where
-    go s (x :< xs) = y :< go s' xs
-      where
-        (s', y) = f s x
+mapAccumL f = flip (foldr (\x acc s -> let (s', y) = f s x in y :< acc s'))
 
 mapAccumLFB :: (acc -> x -> (acc, y)) -> x -> (acc -> Infinite y) -> acc -> Infinite y
 mapAccumLFB f = \x r -> oneShot (\s -> let (s', y) = f s x in y :< r s')
@@ -631,6 +635,8 @@ unsafeCycleFB cons xs = go
   #-}
 
 -- | Build an infinite list from a seed value.
+--
+-- This is an anamorphism on infinite lists.
 unfoldr :: (b -> (a, b)) -> b -> Infinite a
 unfoldr f = go
   where
@@ -675,10 +681,7 @@ take = GHC.Exts.inline genericTake
 genericTake :: Integral i => i -> Infinite a -> [a]
 genericTake n
   | n < 1 = const []
-  | otherwise = unsafeTake n
-  where
-    unsafeTake 1 (x :< _) = [x]
-    unsafeTake m (x :< xs) = x : unsafeTake (m - 1) xs
+  | otherwise = flip (foldr (\hd f m -> hd : (if m <= 1 then [] else f (m - 1)))) n
 
 genericTakeFB :: Integral i => (elt -> lst -> lst) -> lst -> elt -> (i -> lst) -> i -> lst
 genericTakeFB cons nil x xs = \m -> if m <= 1 then x `cons` nil else x `cons` xs (m - 1)
@@ -689,12 +692,8 @@ drop = GHC.Exts.inline genericDrop
 
 -- | Drop a prefix of given length.
 genericDrop :: Integral i => i -> Infinite a -> Infinite a
-genericDrop n
-  | n < 1 = id
-  | otherwise = unsafeDrop n
-  where
-    unsafeDrop 1 (_ :< xs) = xs
-    unsafeDrop m (_ :< xs) = unsafeDrop (m - 1) xs
+genericDrop = flip (para (\hd tl f m -> if m < 1 then hd :< tl else f (m - 1)))
+{-# INLINEABLE genericDrop #-}
 
 -- | Split an infinite list into a prefix of given length and the rest.
 splitAt :: Int -> Infinite a -> ([a], Infinite a)
@@ -704,19 +703,12 @@ splitAt = GHC.Exts.inline genericSplitAt
 genericSplitAt :: Integral i => i -> Infinite a -> ([a], Infinite a)
 genericSplitAt n
   | n < 1 = ([],)
-  | otherwise = unsafeSplitAt n
-  where
-    unsafeSplitAt 1 (x :< xs) = ([x], xs)
-    unsafeSplitAt m (x :< xs) = first (x :) (unsafeSplitAt (m - 1) xs)
+  | otherwise = flip (para (\hd tl f m -> if m <= 1 then ([hd], tl) else first (hd :) (f (m - 1)))) n
 {-# INLINEABLE genericSplitAt #-}
 
 -- | Take the longest prefix satisfying a predicate.
 takeWhile :: (a -> Bool) -> Infinite a -> [a]
-takeWhile p = go
-  where
-    go (x :< xs)
-      | p x = x : go xs
-      | otherwise = []
+takeWhile p = foldr (\x xs -> if p x then x : xs else [])
 
 takeWhileFB :: (elt -> Bool) -> (elt -> lst -> lst) -> lst -> elt -> lst -> lst
 takeWhileFB p cons nil = \x r -> if p x then x `cons` r else nil
@@ -739,11 +731,7 @@ takeWhileFB p cons nil = \x r -> if p x then x `cons` r else nil
 -- This function isn't productive (e. g., 'head' . 'dropWhile' @f@ won't terminate),
 -- if all elements of the input list satisfy the predicate.
 dropWhile :: (a -> Bool) -> Infinite a -> Infinite a
-dropWhile p = go
-  where
-    go xxs@(x :< xs)
-      | p x = go xs
-      | otherwise = xxs
+dropWhile p = para (\x xs -> if p x then id else const (x :< xs))
 
 -- | Split an infinite list into the longest prefix satisfying a predicate and the rest.
 --
@@ -751,11 +739,7 @@ dropWhile p = go
 -- (e. g., 'head' . 'snd' . 'span' @f@ won't terminate),
 -- if all elements of the input list satisfy the predicate.
 span :: (a -> Bool) -> Infinite a -> ([a], Infinite a)
-span p = go
-  where
-    go xxs@(x :< xs)
-      | p x = first (x :) (go xs)
-      | otherwise = ([], xxs)
+span p = para (\x xs -> if p x then first (x :) else const ([], x :< xs))
 
 -- | Split an infinite list into the longest prefix /not/ satisfying a predicate and the rest.
 --
@@ -768,10 +752,12 @@ break = span . (not .)
 -- | If a list is a prefix of an infinite list, strip it and return the rest.
 -- Otherwise return 'Nothing'.
 stripPrefix :: Eq a => [a] -> Infinite a -> Maybe (Infinite a)
-stripPrefix [] ys = Just ys
-stripPrefix (x : xs) (y :< ys)
-  | x == y = stripPrefix xs ys
-  | otherwise = Nothing
+stripPrefix [] = Just
+stripPrefix (p : ps) = flip (para alg) (p :| ps)
+  where
+    alg x xs acc (y :| ys)
+      | x == y = maybe (Just xs) acc (NE.nonEmpty ys)
+      | otherwise = Nothing
 
 -- | Group consecutive equal elements.
 group :: Eq a => Infinite a -> Infinite (NonEmpty a)
@@ -779,6 +765,9 @@ group = groupBy (==)
 
 -- | Overloaded version of 'group'.
 groupBy :: (a -> a -> Bool) -> Infinite a -> Infinite (NonEmpty a)
+-- Quite surprisingly, 'groupBy' is not a simple catamorphism.
+-- Since @f@ is not guaranteed to be transitive, it's a full-blown
+-- histomorphism, at which point a manual recursion becomes much more readable.
 groupBy f = go
   where
     go (x :< xs) = (x :| ys) :< go zs
@@ -817,10 +806,10 @@ tails = foldr (\x xss@(~(xs :< _)) -> (x :< xs) :< xss)
 
 -- | Check whether a list is a prefix of an infinite list.
 isPrefixOf :: Eq a => [a] -> Infinite a -> Bool
-isPrefixOf [] _ = True
-isPrefixOf (x : xs) (y :< ys)
-  | x == y = isPrefixOf xs ys
-  | otherwise = False
+isPrefixOf [] = const True
+isPrefixOf (p : ps) = flip (foldr alg) (p :| ps)
+  where
+    alg x acc (y :| ys) = x == y && maybe True acc (NE.nonEmpty ys)
 
 -- | Find the first pair, whose first component is equal to the first argument,
 -- and return the second component.
@@ -880,10 +869,7 @@ partition f = foldr (\a -> if f a then first (a :<) else second (a :<))
 -- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>
 -- type class in disguise.
 (!!) :: Infinite a -> Word -> a
-(!!) = flip go
-  where
-    go 0 (x :< _) = x
-    go !m (_ :< ys) = go (m - 1) ys
+(!!) = foldr (\x acc m -> if m == 0 then x else acc (m - 1))
 
 infixl 9 !!
 
@@ -902,20 +888,14 @@ elemIndices = findIndices . (==)
 -- | Return an index of the first element, satisfying a predicate.
 -- If there is nothing to be found, this function will hang indefinitely.
 findIndex :: (a -> Bool) -> Infinite a -> Word
-findIndex f = go 0
-  where
-    go !n (x :< xs)
-      | f x = n
-      | otherwise = go (n + 1) xs
+findIndex f = flip (foldr (\x acc !m -> if f x then m else acc (m + 1))) 0
 
 -- | Return indices of all elements, satisfying a predicate.
 --
 -- This function isn't productive (e. g., 'head' . 'elemIndices' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
 findIndices :: (a -> Bool) -> Infinite a -> Infinite Word
-findIndices f = go 0
-  where
-    go !n (x :< xs) = (if f x then (n :<) else id) (go (n + 1) xs)
+findIndices f = flip (foldr (\x acc !m -> (if f x then (m :<) else id) (acc (m + 1)))) 0
 
 -- | Unzip an infinite list of tuples.
 unzip :: Infinite (a, b) -> (Infinite a, Infinite b)
@@ -949,9 +929,10 @@ unzip7 = foldr (\(a, b, c, d, e, f, g) ~(as, bs, cs, ds, es, fs, gs) -> (a :< as
 
 -- | Split an infinite string into lines, by @\\n@.
 lines :: Infinite Char -> Infinite [Char]
-lines xs = l :< lines xs'
+lines = foldr go
   where
-    (l, ~(_ :< xs')) = break (== '\n') xs
+    go '\n' xs = [] :< xs
+    go c ~(x :< xs) = (c : x) :< xs
 
 -- | Concatenate lines together with @\\n@.
 unlines :: Infinite [Char] -> Infinite Char
@@ -959,18 +940,28 @@ unlines = foldr (\l xs -> l `prependList` ('\n' :< xs))
 
 -- | Split an infinite string into words, by any 'isSpace' symbol.
 words :: Infinite Char -> Infinite (NonEmpty Char)
-words xs = (u :| us) :< words vs
+-- This is fundamentally a zygomorphism with 'isSpace' . 'head' as the small algebra.
+-- But manual implementation via catamorphism requires 2x less calls of 'isSpace'.
+words = uncurry repack . foldr go
   where
-    u :< ys = dropWhile isSpace xs
-    (us, vs) = break isSpace ys
+    repack zs acc = maybe acc (:< acc) (NE.nonEmpty zs)
+
+    go x ~(zs, acc) = (zs', acc')
+      where
+        s = isSpace x
+        zs' = if s then [] else x : zs
+        acc' = if s then repack zs acc else acc
 
 wordsFB :: (NonEmpty Char -> lst -> lst) -> Infinite Char -> lst
-wordsFB cons = go
+wordsFB cons = uncurry repack . foldr go
   where
-    go xs = (u :| us) `cons` go vs
+    repack zs acc = maybe acc (`cons` acc) (NE.nonEmpty zs)
+
+    go x ~(zs, acc) = (zs', acc')
       where
-        u :< ys = dropWhile isSpace xs
-        (us, vs) = break isSpace ys
+        s = isSpace x
+        zs' = if s then [] else x : zs
+        acc' = if s then repack zs acc else acc
 
 {-# NOINLINE [1] words #-}
 
@@ -1003,14 +994,7 @@ nub = nubBy (==)
 
 -- | Overloaded version of 'nub'.
 nubBy :: (a -> a -> Bool) -> Infinite a -> Infinite a
-nubBy eq = go []
-  where
-    go seen (x :< xs)
-      | elemBy x seen = go seen xs
-      | otherwise = x :< go (x : seen) xs
-
-    elemBy _ [] = False
-    elemBy y (x : xs) = eq x y || elemBy y xs
+nubBy eq = flip (foldr (\x acc seen -> if List.any (`eq` x) seen then acc seen else x :< acc (x : seen))) []
 
 -- | Remove all occurrences of an element from an infinite list.
 delete :: Eq a => a -> Infinite a -> Infinite a
@@ -1018,11 +1002,7 @@ delete = deleteBy (==)
 
 -- | Overloaded version of 'delete'.
 deleteBy :: (a -> b -> Bool) -> a -> Infinite b -> Infinite b
-deleteBy eq x = go
-  where
-    go (y :< ys)
-      | eq x y = ys
-      | otherwise = y :< go ys
+deleteBy eq x = para (\y ys acc -> if eq x y then ys else y :< acc)
 
 -- | Take an infinite list and remove the first occurrence of every element
 -- of a finite list.
@@ -1050,11 +1030,7 @@ insert = insertBy compare
 
 -- | Overloaded version of 'insert'.
 insertBy :: (a -> a -> Ordering) -> a -> Infinite a -> Infinite a
-insertBy cmp x = go
-  where
-    go yys@(y :< ys) = case cmp x y of
-      GT -> y :< go ys
-      _ -> x :< yys
+insertBy cmp x = para (\y ys acc -> case cmp x y of GT -> y :< acc; _ -> x :< y :< ys)
 
 -- | Return all elements of an infinite list, which are simultaneously
 -- members of a finite list.

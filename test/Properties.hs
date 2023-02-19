@@ -315,8 +315,10 @@ main = defaultMain $ testGroup "All"
     \(xs :: [Int]) (Blind (ys :: Infinite Int)) ->
       I.isPrefixOf xs ys === L.isPrefixOf xs (I.take (length xs + 10) ys)
   , testProperty "isPrefixOf laziness 1" $
-    not (I.isPrefixOf ('q' : undefined) ('w' :< undefined))
+    I.isPrefixOf "" undefined
   , testProperty "isPrefixOf laziness 2" $
+    not (I.isPrefixOf ('q' : undefined) ('w' :< undefined))
+  , testProperty "isPrefixOf laziness 3" $
     I.isPrefixOf "foo" ('f' :< 'o' :< 'o' :< undefined)
 
   , testProperty "zip" $
