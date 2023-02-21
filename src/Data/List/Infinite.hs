@@ -770,22 +770,6 @@ dropWhile p = go
       | p x = go xs
       | otherwise = xxs
 
-dropWhileFB :: (elt -> Bool) -> (elt -> lst -> lst) -> elt -> (Bool -> lst) -> (Bool -> lst)
-dropWhileFB p cons = \x r drp -> if drp && p x then r True else x `cons` r False
-
-{-# NOINLINE [1] dropWhile #-}
-
-{-# INLINE [0] dropWhileFB #-}
-
-{-# RULES
-"dropWhile" [~1] forall p xs.
-  dropWhile p xs =
-    build (\cons -> foldr (dropWhileFB p cons) xs True)
-"dropWhileList" [1] forall p xs.
-  foldr (dropWhileFB p (:<)) xs True =
-    dropWhile p xs
-  #-}
-
 -- | Split an infinite list into the longest prefix satisfying a predicate and the rest.
 --
 -- This function isn't productive in the second component of the tuple

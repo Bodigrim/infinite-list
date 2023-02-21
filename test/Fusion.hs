@@ -76,9 +76,6 @@ genericTakeGenericDropRepeat x = I.genericTake x (I.genericDrop x (I.repeat x))
 takeWhileIterate :: Int -> [Int]
 takeWhileIterate x = I.takeWhile (< 10) (I.iterate (+ 1) x)
 
-takeWhileDropWhileIterate :: Int -> [Int]
-takeWhileDropWhileIterate x = I.takeWhile (< 20) $ I.dropWhile (< 10) (I.iterate (+ 1) x)
-
 foldrCycle :: NonEmpty Int -> [Int]
 foldrCycle xs = I.foldr (:) (I.cycle xs)
 
@@ -267,7 +264,6 @@ main = defaultMain $ testGroup "All"
   , $(inspectTest $ 'takeDropRepeat `hasNoType` ''Infinite)
   , $(inspectTest $ 'genericTakeGenericDropRepeat `hasNoType` ''Infinite)
   , $(inspectTest $ 'takeWhileIterate `hasNoType` ''Infinite)
-  , $(inspectTest $ 'takeWhileDropWhileIterate `hasNoType` ''Infinite)
   , $(inspectTest $ 'foldrCycle `hasNoType` ''Infinite)
   , $(inspectTest $ 'foldrWordsCycle `hasNoType` ''NonEmpty)
   , $(inspectTest $ 'mapAccumLRepeat `hasNoType` ''Word)
