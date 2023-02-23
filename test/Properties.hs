@@ -274,9 +274,8 @@ main = defaultMain $ testGroup "All"
 
   , testProperty "takeWhile" $
     \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
-      let ys = L.take 10 (I.takeWhile f xs) in
-        L.take 10 (L.takeWhile f (I.take (length ys + 10) xs)) ===
-          L.take 10 (I.takeWhile f xs)
+      L.take 10 (L.takeWhile f (I.foldr (:) xs)) ===
+        L.take 10 (I.takeWhile f xs)
   , testProperty "takeWhile laziness 1" $
       L.null (I.takeWhile (const False) ('q' :< undefined))
   , testProperty "takeWhile laziness 2" $
@@ -377,7 +376,7 @@ main = defaultMain $ testGroup "All"
     I.take 2 (I.unlines ("q" :< undefined)) === "q\n"
   , testProperty "unwords" $
     \(Blind (xs :: Infinite (NonEmpty Char))) ->
-      trim (I.unwords xs) === L.take 10 (L.unwords (L.map NE.toList (trim xs)))
+      trim (I.unwords xs) === L.take 10 (L.unwords (L.map NE.toList (I.foldr (:) xs)))
   , testProperty "unwords laziness" $
     I.take 2 (I.unwords (('q' :| []) :< undefined)) === "q "
 
@@ -388,7 +387,7 @@ main = defaultMain $ testGroup "All"
     NE.head (I.head (I.group ('q' :< undefined))) === 'q'
   , testProperty "nub" $
     \(Blind (ys :: Infinite (Large Int))) ->
-      I.take 3 (I.nub ys) === L.take 3 (L.nub (I.foldr (:) ys))
+      fmap getLarge (I.take 3 (I.nub ys)) === fmap getLarge (L.take 3 (L.nub (I.foldr (:) ys)))
   , testProperty "nub laziness" $
     I.head (I.nub ('q' :< undefined)) === 'q'
 
