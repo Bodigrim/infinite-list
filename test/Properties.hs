@@ -383,6 +383,10 @@ main = defaultMain $ testGroup "All"
   , testProperty "group" $
     \(Blind (ys :: Infinite Ordering)) ->
       trim (I.group ys) === L.take 10 (NE.group (I.foldr (:) ys))
+  , testProperty "groupBy" $
+    \(curry . applyFun -> f :: Ordering -> Ordering -> Bool) (Blind ys) ->
+      all (\x -> not $ all (f x) [minBound..maxBound]) [minBound..maxBound] ==>
+        trim (I.groupBy f ys) === L.take 10 (NE.groupBy f (I.foldr (:) ys))
   , testProperty "group laziness" $
     NE.head (I.head (I.group ('q' :< undefined))) === 'q'
   , testProperty "nub" $
