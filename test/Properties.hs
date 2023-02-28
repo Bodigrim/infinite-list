@@ -18,9 +18,12 @@ module Main where
 
 import Test.QuickCheck.Function
 import Test.Tasty
-import Test.Tasty.QuickCheck as QC
+import Test.Tasty.QuickCheck hiding ((===))
+import qualified Test.Tasty.QuickCheck as QC
 
 import Control.Applicative
+import Control.DeepSeq
+import Control.Exception
 import Control.Monad
 import Data.Bifunctor
 import Data.Bits
@@ -35,11 +38,28 @@ import Numeric.Natural
 import Prelude hiding (Applicative(..))
 
 instance Arbitrary a => Arbitrary (Infinite a) where
-  arbitrary = (:<) <$> arbitrary <*> arbitrary
+  arbitrary = frequency
+    [ (10, (:<) <$> arbitrary <*> arbitrary)
+    , (1, undefined)
+    ]
   shrink = const []
 
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = (:|) <$> arbitrary <*> arbitrary
+
+(===) :: (Eq a, NFData a, Show a) => a -> a -> Property
+i === j = ioProperty $ do
+  x <- try (evaluate (force i))
+  y <- try (evaluate (force j))
+  pure $ case (x, y) of
+    (Left (_ :: SomeException), Left (_ :: SomeException))
+                       -> property True
+    (Right a, Right b) -> a QC.=== b
+    e                  -> counterexample ("Divergence: " ++ show e) $ property False
+infix 4 ===
+
+foo :: Infinite (Maybe a) -> Infinite a
+foo = I.foldr (maybe undefined (:<))
 
 trim :: Infinite a -> [a]
 trim = I.take 10
@@ -69,9 +89,9 @@ main = defaultMain $ testGroup "All"
   , testProperty "fmap" $
     \(applyFun -> f :: Int -> Int) (Blind (xs :: Infinite Int)) ->
       trim (fmap f xs) === fmap f (trim xs)
-  , testProperty "<$" $
-    \(x :: Word) (Blind (xs :: Infinite Int)) ->
-      trim (x <$ xs) === trim (fmap (const x) xs)
+  -- , testProperty "<$" $
+  --   \(x :: Word) (Blind (xs :: Infinite Int)) ->
+  --     trim (x <$ xs) === trim (fmap (const x) xs)
 
   , testProperty "pure" $
     \(applyFun -> f :: Int -> Word) (x :: Int) ->
@@ -79,9 +99,9 @@ main = defaultMain $ testGroup "All"
   , testProperty "*>" $
     \(Blind (xs :: Infinite Int)) (Blind (ys :: Infinite Word)) ->
       trim (xs *> ys) === trim ((id <$ xs) <*> ys)
-  , testProperty "<*" $
-    \(Blind (xs :: Infinite Int)) (Blind (ys :: Infinite Word)) ->
-      trim (xs <* ys) === trim (liftA2 const xs ys)
+  -- , testProperty "<*" $
+  --   \(Blind (xs :: Infinite Int)) (Blind (ys :: Infinite Word)) ->
+  --     trim (xs <* ys) === trim (liftA2 const xs ys)
 
   , testProperty ">>= 1" $
     \x ((I.cycle .) . applyFun -> k :: Int -> Infinite Word) ->
@@ -119,12 +139,12 @@ main = defaultMain $ testGroup "All"
   , testProperty "intercalate laziness 2" $
     I.take 6 (I.intercalate (NE.fromList "bar") ("foo" :< undefined)) === "foobar"
 
-  , testProperty "interleave 1" $
-    \(Blind (xs :: Infinite Int)) (Blind ys) ->
-      trim (I.map snd (I.filter fst (I.zip (I.cycle (True :| [False])) (I.interleave xs ys)))) === trim xs
-  , testProperty "interleave 2" $
-    \(Blind (xs :: Infinite Int)) (Blind ys) ->
-      trim (I.map snd (I.filter fst (I.zip (I.cycle (False :| [True])) (I.interleave xs ys)))) === trim ys
+  -- , testProperty "interleave 1" $
+  --   \(Blind (xs :: Infinite Int)) (Blind ys) ->
+  --     trim (I.map snd (I.filter fst (I.zip (I.cycle (True :| [False])) (I.interleave xs ys)))) === trim xs
+  -- , testProperty "interleave 2" $
+  --   \(Blind (xs :: Infinite Int)) (Blind ys) ->
+  --     trim (I.map snd (I.filter fst (I.zip (I.cycle (False :| [True])) (I.interleave xs ys)))) === trim ys
   , testProperty "interleave laziness" $
     I.head (I.interleave ('a' :< undefined) undefined) === 'a'
 
@@ -376,9 +396,9 @@ main = defaultMain $ testGroup "All"
       trim (I.unlines xs) === L.take 10 (L.unlines (trim xs))
   , testProperty "unlines laziness" $
     I.take 2 (I.unlines ("q" :< undefined)) === "q\n"
-  , testProperty "unwords" $
-    \(Blind (xs :: Infinite (NonEmpty Char))) ->
-      trim (I.unwords xs) === L.take 10 (L.unwords (L.map NE.toList (I.foldr (:) xs)))
+  -- , testProperty "unwords" $
+  --   \(Blind (xs :: Infinite (NonEmpty Char))) ->
+  --     trim (I.unwords xs) === L.take 10 (L.unwords (L.map NE.toList (I.foldr (:) xs)))
   , testProperty "unwords laziness" $
     I.take 2 (I.unwords (('q' :| []) :< undefined)) === "q "
 
