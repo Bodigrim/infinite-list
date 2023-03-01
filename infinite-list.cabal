@@ -104,3 +104,6 @@ benchmark infinite-bench
         base,
         infinite-list,
         tasty-bench
+
+    if impl(ghc >=8.6)
+        ghc-options: -fproc-alignment=64
