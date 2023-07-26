@@ -55,6 +55,13 @@ map :: (a -> b) -> NonEmpty a -> NonEmpty b
 map f ~(a :| as) = f a :| fmap f as
 ```
 
+which is equivalent to
+
+```haskell
+map :: (a -> b) -> NonEmpty a -> NonEmpty b
+map f x = (let a :| _ = x in f a) :| (let _ :| as = x in fmap f as)
+```
+
 Because of it forcing the result to WHNF does not force any of the arguments, e. g., ``Data.List.NonEmpty.map undefined undefined `seq` 1`` returns `1`. This is not the case for normal lists: since there are two constructors, `map` has to inspect the argument before returning anything, and ``Data.List.map undefined undefined `seq` 1`` throws an error.
 
 While `Data.List.Infinite` has a single constructor, we believe that following the example of `Data.List.NonEmpty` is harmful for the majority of applications. Instead the laziness of the API is modeled on the laziness of respective operations on `Data.List`: a function `Data.List.Infinite.foo` operating over `Infinite a` is expected to have the same strictness properties as `Data.List.foo` operating over `[a]`. For instance, ``Data.List.Infinite.map undefined undefined `seq` 1`` diverges.
