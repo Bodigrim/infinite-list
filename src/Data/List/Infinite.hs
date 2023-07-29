@@ -87,6 +87,8 @@ module Data.List.Infinite (
   lookup,
   find,
   filter,
+  mapMaybe,
+  catMaybes,
   partition,
 
   -- * Indexing
@@ -1044,3 +1046,21 @@ intersectBy eq xs ys = filter (\x -> List.any (eq x) ys) xs
 -- | Prepend a list to an infinite list.
 prependList :: [a] -> Infinite a -> Infinite a
 prependList = flip (F.foldr (:<))
+
+-- | Apply a function to every element of an infinite list and collect 'Just' results.
+--
+-- This function isn't productive (e. g., 'head' . 'mapMaybe' @f@ won't terminate),
+-- if no elements of the input list result in 'Just'.
+--
+-- @since 0.1.1
+mapMaybe :: (a -> Maybe b) -> Infinite a -> Infinite b
+mapMaybe = foldr . (maybe id (:<) .)
+
+-- | Keep only 'Just' elements.
+--
+-- This function isn't productive (e. g., 'head' . 'catMaybes' won't terminate),
+-- if no elements of the input list are 'Just'.
+--
+-- @since 0.1.1
+catMaybes :: Infinite (Maybe a) -> Infinite a
+catMaybes = foldr (maybe id (:<))

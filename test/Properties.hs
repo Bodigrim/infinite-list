@@ -459,6 +459,14 @@ main = defaultMain $ testGroup "All"
     \(applyFun -> f :: Int -> Bool) xs (Blind ys) ->
       let us = L.filter f xs in
         us === I.take (length us) (I.filter f (I.prependList xs ys))
+  , testProperty "mapMaybe" $
+    \(applyFun -> f :: Int -> Maybe Word) xs (Blind ys) ->
+      let us = mapMaybe f xs in
+        us === I.take (length us) (I.mapMaybe f (I.prependList xs ys))
+  , testProperty "catMaybes" $
+    \(xs :: [Maybe Word]) (Blind ys) ->
+      let us = catMaybes xs in
+        us === I.take (length us) (I.catMaybes (I.prependList xs ys))
   , testProperty "partition" $
     \(applyFun -> f :: Int -> Bool) xs (Blind ys) ->
       let (us, vs) = L.partition f xs in
