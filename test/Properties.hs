@@ -26,6 +26,7 @@ import Control.Applicative
 import Control.Monad
 import Data.Bifunctor
 import Data.Bits
+import Data.Either
 import qualified Data.List as L
 import Data.List.Infinite (Infinite(..))
 import qualified Data.List.Infinite as I
@@ -51,6 +52,9 @@ trim1 = I.take 11
 
 mapMapFusion :: Infinite Int -> Infinite Int
 mapMapFusion xs = I.map fromIntegral (I.map fromIntegral xs :: Infinite Word)
+
+mapEither :: (a -> Either b c) -> [a] -> ([b], [c])
+mapEither f = foldr (either (first . (:)) (second . (:)) . f) ([], [])
 
 main :: IO ()
 main = defaultMain $ testGroup "All"
@@ -471,6 +475,16 @@ main = defaultMain $ testGroup "All"
     \(applyFun -> f :: Int -> Bool) xs (Blind ys) ->
       let (us, vs) = L.partition f xs in
         let (us', vs') = I.partition f (I.prependList xs ys) in
+          us === I.take (length us) us' .&&. vs === I.take (length vs) vs'
+  , testProperty "mapEither" $
+    \(applyFun -> f :: Int -> Either Word Char) xs (Blind ys) ->
+      let (us, vs) = mapEither f xs in
+        let (us', vs') = I.mapEither f (I.prependList xs ys) in
+          us === I.take (length us) us' .&&. vs === I.take (length vs) vs'
+  , testProperty "partitionEithers" $
+    \(xs :: [Either Word Char]) (Blind ys) ->
+      let (us, vs) = partitionEithers xs in
+        let (us', vs') = I.partitionEithers (I.prependList xs ys) in
           us === I.take (length us) us' .&&. vs === I.take (length vs) vs'
 
   , testProperty "!!" $

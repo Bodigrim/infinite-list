@@ -90,6 +90,8 @@ module Data.List.Infinite (
   mapMaybe,
   catMaybes,
   partition,
+  mapEither,
+  partitionEithers,
 
   -- * Indexing
   (!!),
@@ -153,6 +155,7 @@ import Control.Monad (Monad (..))
 import Data.Bits ((.&.))
 import Data.Char (Char, isSpace)
 import Data.Coerce (coerce)
+import Data.Either (Either, either)
 import Data.Eq (Eq, (/=), (==))
 import qualified Data.Foldable as F
 import Data.Functor (Functor (..))
@@ -1064,3 +1067,24 @@ mapMaybe = foldr . (maybe id (:<) .)
 -- @since 0.1.1
 catMaybes :: Infinite (Maybe a) -> Infinite a
 catMaybes = foldr (maybe id (:<))
+
+-- | Apply a function to every element of an infinite list and
+-- separate 'Data.Either.Left' and 'Data.Either.Right' results.
+--
+-- This function isn't productive (e. g., 'head' . 'Data.Tuple.fst' .
+-- 'mapEither' @f@ won't terminate),
+-- if no elements of the input list result in 'Data.Either.Left' or 'Data.Either.Right'.
+--
+-- @since 0.1.1
+mapEither :: (a -> Either b c) -> Infinite a -> (Infinite b, Infinite c)
+mapEither = foldr . (either (first . (:<)) (second . (:<)) .)
+
+-- | Separate 'Data.Either.Left' and 'Data.Either.Right' elements.
+--
+-- This function isn't productive (e. g., 'head' . 'Data.Tuple.fst' . 'partitionEithers'
+-- won't terminate),
+-- if no elements of the input list are 'Data.Either.Left' or 'Data.Either.Right'.
+--
+-- @since 0.1.1
+partitionEithers :: Infinite (Either a b) -> (Infinite a, Infinite b)
+partitionEithers = foldr (either (first . (:<)) (second . (:<)))
