@@ -239,6 +239,8 @@ toList = foldr (:)
 (...) = unsafeCycle . enumFrom
 {-# INLINE [0] (...) #-}
 
+infix 0 ...
+
 {-# RULES
 "ellipsis3Int" (...) = ellipsis3Int
 "ellipsis3Word" (...) = ellipsis3Word
@@ -278,6 +280,8 @@ ellipsis3Natural = iterate' (+ 1)
 (....) :: Enum a => (a, a) -> Infinite a
 (....) = unsafeCycle . uncurry enumFromThen
 {-# INLINE [0] (....) #-}
+
+infix 0 ....
 
 {-# RULES
 "ellipsis4Int" (....) = ellipsis4Int
