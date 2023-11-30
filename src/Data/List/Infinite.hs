@@ -84,9 +84,9 @@ module Data.List.Infinite (
   stripPrefix,
 
   -- * Searching
+  filter,
   lookup,
   find,
-  filter,
   mapMaybe,
   catMaybes,
   partition,
@@ -178,7 +178,8 @@ import Data.List.Infinite.Internal
 import Data.List.Infinite.Zip
 
 -- | Right-associative fold of an infinite list, necessarily lazy in the accumulator.
--- Any unconditional attempt to force the accumulator even to WHNF
+-- Any unconditional attempt to force the accumulator even
+-- to the weak head normal form (WHNF)
 -- will hang the computation. E. g., the following definition isn't productive:
 --
 -- > import Data.List.NonEmpty (NonEmpty(..))
@@ -211,7 +212,7 @@ para f = go
     go :: Infinite a -> b
     go (x :< xs) = f x xs (go xs)
 
--- | Convert to a list. Use 'cycle' to go in another direction.
+-- | Convert to a list. Use 'cycle' to go in the opposite direction.
 toList :: Infinite a -> [a]
 toList = foldr (:)
 {-# NOINLINE [0] toList #-}
@@ -222,7 +223,7 @@ toList = foldr (:)
     GHC.Exts.build (\cons -> const (foldr cons xs))
   #-}
 
--- | Generate infinite sequences, starting from a given element,
+-- | Generate an infinite progression, starting from a given element,
 -- similar to @[x..]@.
 -- For better user experience consider enabling @{\-# LANGUAGE PostfixOperators #-\}@:
 --
@@ -235,6 +236,10 @@ toList = foldr (:)
 -- >>> :set -XPostfixOperators
 -- >>> Data.List.Infinite.take 10 (EQ...)
 -- [EQ,GT,EQ,GT,EQ,GT,EQ,GT,EQ,GT]
+--
+-- Remember that 'Int' is a finite type as well. One is unlikely to hit this
+-- on a 64-bit architecture, but on a 32-bit machine it's fairly possible to traverse
+-- @((0 :: 'Int') ...)@ far enough to encounter @0@ again.
 (...) :: Enum a => a -> Infinite a
 (...) = unsafeCycle . enumFrom
 {-# INLINE [0] (...) #-}
@@ -264,7 +269,7 @@ ellipsis3Natural :: Natural -> Infinite Natural
 ellipsis3Natural = iterate' (+ 1)
 {-# INLINE ellipsis3Natural #-}
 
--- | Generate infinite sequences, starting from given elements,
+-- | Generate an infinite arithmetic progression, starting from given elements,
 -- similar to @[x,y..]@.
 -- For better user experience consider enabling @{\-# LANGUAGE PostfixOperators #-\}@:
 --
@@ -277,6 +282,10 @@ ellipsis3Natural = iterate' (+ 1)
 -- >>> :set -XPostfixOperators
 -- >>> Data.List.Infinite.take 10 ((EQ,GT)....)
 -- [EQ,GT,EQ,GT,EQ,GT,EQ,GT,EQ,GT]
+--
+-- Remember that 'Int' is a finite type as well: for a sufficiently large
+-- step of progression @y - x@ one may observe @((x :: Int, y)....)@ cycling back
+-- to emit @x@ fairly soon.
 (....) :: Enum a => (a, a) -> Infinite a
 (....) = unsafeCycle . uncurry enumFromThen
 {-# INLINE [0] (....) #-}
@@ -340,11 +349,12 @@ instance Applicative Infinite where
 
 -- | 'Control.Applicative.ZipList' cannot be made a lawful 'Monad',
 -- but 'Infinite', being a
--- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>,
+-- [@Representable@](https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable),
 -- can. Namely, 'Control.Monad.join'
 -- picks up a diagonal of an infinite matrix of 'Infinite' ('Infinite' @a@).
--- This is mostly useful for parallel list comprehensions once
--- @{\-# LANGUAGE MonadComprehensions #-\}@ is enabled.
+-- Bear in mind that this instance gets slow
+-- very soon because of linear indexing, so it is not recommended to be used
+-- in practice.
 instance Monad Infinite where
   xs >>= f = go 0 xs
     where
@@ -400,6 +410,10 @@ mapFB = (.)
   #-}
 
 -- | Flatten out an infinite list of non-empty lists.
+--
+-- The peculiar type with 'NonEmpty' is to guarantee that 'concat'
+-- is productive and results in an infinite list. Otherwise the
+-- concatenation of infinitely many @[a]@ could still be a finite list.
 concat :: Infinite (NonEmpty a) -> Infinite a
 concat = foldr (\(x :| xs) acc -> x :< (xs `prependList` acc))
 {-# NOINLINE [1] concat #-}
@@ -411,6 +425,10 @@ concat = foldr (\(x :| xs) acc -> x :< (xs `prependList` acc))
   #-}
 
 -- | First 'map' every element, then 'concat'.
+--
+-- The peculiar type with 'NonEmpty' is to guarantee that 'concatMap'
+-- is productive and results in an infinite list. Otherwise the
+-- concatenation of infinitely many @[b]@ could still be a finite list.
 concatMap :: (a -> NonEmpty b) -> Infinite a -> Infinite b
 concatMap f = foldr (\a acc -> let (x :| xs) = f a in x :< (xs `prependList` acc))
 {-# NOINLINE [1] concatMap #-}
@@ -438,6 +456,10 @@ intersperse a = foldr (\x -> (x :<) . (a :<))
 
 -- | Insert a non-empty list between adjacent elements of an infinite list,
 -- and subsequently flatten it out.
+--
+-- The peculiar type with 'NonEmpty' is to guarantee that 'intercalate'
+-- is productive and results in an infinite list. If separator is an empty list,
+-- concatenation of infinitely many @[a]@ could still be a finite list.
 intercalate :: NonEmpty a -> Infinite [a] -> Infinite a
 intercalate ~(a :| as) = foldr (\xs -> prependList xs . (a :<) . prependList as)
 {-# NOINLINE [1] intercalate #-}
@@ -451,7 +473,7 @@ intercalate ~(a :| as) = foldr (\xs -> prependList xs . (a :<) . prependList as)
 -- | Transpose rows and columns of an argument.
 --
 -- This is actually @distribute@ from
--- <https://hackage.haskell.org/package/distributive/docs/Data-Distributive.html#t:Distributive Distributive>
+-- [@Distributive@](https://hackage.haskell.org/package/distributive/docs/Data-Distributive.html#t:Distributive)
 -- type class in disguise.
 transpose :: Functor f => f (Infinite a) -> Infinite (f a)
 transpose xss = fmap head xss :< transpose (fmap tail xss)
@@ -485,7 +507,9 @@ permutations xs0 = xs0 :< perms xs0 []
           where
             (us, zs) = interleaveList' (f . (y :<)) ys r
 
--- |
+-- | Fold an infinite list from the left and return a list of successive reductions,
+-- starting from the initial accumulator:
+--
 -- > scanl f acc (x1 :< x2 :< ...) = acc :< f acc x1 :< f (f acc x1) x2 :< ...
 scanl :: (b -> a -> b) -> b -> Infinite a -> Infinite b
 scanl f z0 = (z0 :<) . flip (foldr (\x acc z -> let fzx = f z x in fzx :< acc fzx)) z0
@@ -526,18 +550,23 @@ scanlFB' f cons = \elt g -> oneShot (\x -> let !elt' = f x elt in elt' `cons` g 
     tail (scanl' f a bs)
   #-}
 
--- |
+-- | Fold an infinite list from the left and return a list of successive reductions,
+-- starting from the first element:
+--
 -- > scanl1 f (x0 :< x1 :< x2 :< ...) = x0 :< f x0 x1 :< f (f x0 x1) x2 :< ...
 scanl1 :: (a -> a -> a) -> Infinite a -> Infinite a
 scanl1 f (x :< xs) = scanl f x xs
 
--- | If you are looking how to traverse with a state, look no further:
+-- | Fold an infinite list from the left and return a list of successive reductions,
+-- keeping accumulator in a state:
 --
 -- > mapAccumL f acc0 (x1 :< x2 :< ...) =
 -- >   let (acc1, y1) = f acc0 x1 in
 -- >     let (acc2, y2) = f acc1 x2 in
 -- >       ...
 -- >         y1 :< y2 :< ...
+--
+-- If you are looking how to traverse with a state, look no further.
 mapAccumL :: (acc -> x -> (acc, y)) -> acc -> Infinite x -> Infinite y
 mapAccumL f = flip (foldr (\x acc s -> let (s', y) = f s x in y :< acc s'))
 
@@ -620,6 +649,9 @@ repeatFB cons x = go
 -- | Repeat a non-empty list ad infinitum.
 -- If you were looking for something like @fromList :: [a] -> Infinite a@,
 -- look no further.
+--
+-- It would be less annoying to take @[a]@ instead of 'NonEmpty' @a@,
+-- but we strive to avoid partial functions.
 cycle :: NonEmpty a -> Infinite a
 cycle (x :| xs) = unsafeCycle (x : xs)
 {-# INLINE cycle #-}
@@ -655,7 +687,7 @@ unfoldr f = go
 -- | Generate an infinite list of @f@ 0, @f@ 1, @f@ 2...
 --
 -- 'tabulate' and '(!!)' witness that 'Infinite' is
--- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>.
+-- [@Representable@](https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable).
 tabulate :: (Word -> a) -> Infinite a
 tabulate f = unfoldr (\n -> (f n, n + 1)) 0
 {-# INLINE tabulate #-}
@@ -835,6 +867,13 @@ find f = foldr (\a a' -> if f a then a else a')
 --
 -- This function isn't productive (e. g., 'head' . 'filter' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
+--
+-- A common objection is that since it could happen that no elements of the input
+-- satisfy the predicate, the return type should be @[a]@ instead of 'Infinite' @a@.
+-- This would not however make 'filter' any more productive. Note that such
+-- hypothetical 'filter' could not ever generate @[]@ constructor, only @(:)@, so
+-- we would just have a more lax type gaining nothing instead. Same reasoning applies
+-- to other filtering \/ partitioning \/ searching functions.
 filter :: (a -> Bool) -> Infinite a -> Infinite a
 filter f = foldr (\a -> if f a then (a :<) else id)
 
@@ -875,7 +914,7 @@ partition f = foldr (\a -> if f a then first (a :<) else second (a :<))
 -- to avoid 'Prelude.error' on negative arguments.
 --
 -- This is actually @index@ from
--- <https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable Representable>
+-- [@Representable@](https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable)
 -- type class in disguise.
 (!!) :: Infinite a -> Word -> a
 (!!) = foldr (\x acc m -> if m == 0 then x else acc (m - 1))
@@ -936,7 +975,10 @@ unzip7 :: Infinite (a, b, c, d, e, f, g) -> (Infinite a, Infinite b, Infinite c,
 unzip7 = foldr (\(a, b, c, d, e, f, g) ~(as, bs, cs, ds, es, fs, gs) -> (a :< as, b :< bs, c :< cs, d :< ds, e :< es, f :< fs, g :< gs))
 {-# INLINE unzip7 #-}
 
--- | Split an infinite string into lines, by @\\n@.
+-- | Split an infinite string into lines, by @\\n@. Empty lines are preserved.
+--
+-- In contrast to their counterparts from "Data.List", it holds that
+-- 'unlines' @.@ 'lines' @=@ 'id'.
 lines :: Infinite Char -> Infinite [Char]
 lines = foldr go
   where
@@ -944,13 +986,18 @@ lines = foldr go
     go c ~(x :< xs) = (c : x) :< xs
 
 -- | Concatenate lines together with @\\n@.
+--
+-- In contrast to their counterparts from "Data.List", it holds that
+-- 'unlines' @.@ 'lines' @=@ 'id'.
 unlines :: Infinite [Char] -> Infinite Char
 unlines = foldr (\l xs -> l `prependList` ('\n' :< xs))
 
 -- | Split an infinite string into words, by any 'isSpace' symbol.
+-- Leading spaces are removed and, as underlined by the return type,
+-- repeated spaces are treated as a single delimiter.
 words :: Infinite Char -> Infinite (NonEmpty Char)
 -- This is fundamentally a zygomorphism with 'isSpace' . 'head' as the small algebra.
--- But manual implementation via catamorphism requires 2x less calls of 'isSpace'.
+-- But manual implementation via catamorphism requires twice less calls of 'isSpace'.
 words = uncurry repack . foldr go
   where
     repack zs acc = maybe acc (:< acc) (NE.nonEmpty zs)
@@ -982,6 +1029,10 @@ wordsFB cons = uncurry repack . foldr go
   #-}
 
 -- | Concatenate words together with a space.
+--
+-- The function is meant to be a counterpart of with 'words'.
+-- If you need to concatenate together 'Infinite' @[@'Char'@]@,
+-- use 'intercalate' @(@'pure' @' ')@.
 unwords :: Infinite (NonEmpty Char) -> Infinite Char
 unwords = foldr (\(l :| ls) acc -> l :< ls `prependList` (' ' :< acc))
 

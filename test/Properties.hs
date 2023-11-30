@@ -387,6 +387,9 @@ main = defaultMain $ testGroup "All"
       trim (I.unwords xs) === L.take 10 (L.unwords (L.map NE.toList (I.foldr (:) xs)))
   , testProperty "unwords laziness" $
     I.take 2 (I.unwords (('q' :| []) :< undefined)) === "q "
+  , testProperty "unlines . lines" $
+    \(Blind (xs :: Infinite Char)) ->
+      I.take 100 xs === I.take 100 (I.unlines (I.lines xs))
 
   , testProperty "group" $
     \(Blind (ys :: Infinite Ordering)) ->
