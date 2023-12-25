@@ -1,13 +1,13 @@
-cabal-version:   1.18
+cabal-version:   2.2
 name:            infinite-list
 version:         0.1
-license:         BSD3
+license:         BSD-3-Clause
 license-file:    LICENSE
 maintainer:      andrew.lelechenko@gmail.com
 author:          Bodigrim
 tested-with:
     ghc ==8.0.2 ghc ==8.2.2 ghc ==8.4.4 ghc ==8.6.5 ghc ==8.8.4
-    ghc ==8.10.7 ghc ==9.0.2 ghc ==9.2.8 ghc ==9.4.7 ghc ==9.6.3
+    ghc ==8.10.7 ghc ==9.0.2 ghc ==9.2.8 ghc ==9.4.8 ghc ==9.6.3
     ghc ==9.8.1
 
 homepage:        https://github.com/Bodigrim/infinite-list
@@ -51,7 +51,7 @@ library
     build-depends:    base >=4.9 && <5
 
     if impl(ghc <8.2)
-        build-depends: ghc-prim
+        build-depends: ghc-prim <1
 
 test-suite infinite-properties
     type:             exitcode-stdio-1.0
