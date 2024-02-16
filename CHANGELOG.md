@@ -1,3 +1,7 @@
+# Unreleased
+
+* Add `heteroZip` and `heteroZipWith`.
+
 # 0.1.1
 
 * Add `mapMaybe` and `catMaybes`.
