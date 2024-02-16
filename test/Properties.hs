@@ -32,6 +32,8 @@ import Data.List.Infinite (Infinite(..))
 import qualified Data.List.Infinite as I
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Word (Word32)
 import Numeric.Natural
@@ -345,6 +347,22 @@ main = defaultMain $ testGroup "All"
   , testProperty "zip7" $
     \(Blind (xs1 :: Infinite Int)) (Blind (xs2 :: Infinite Word)) (Blind (xs3 :: Infinite Bool)) (Blind (xs4 :: Infinite Char)) (Blind (xs5 :: Infinite Ordering)) (Blind (xs6 :: Infinite String)) (Blind (xs7 :: Infinite Integer)) ->
       trim (I.zip7 xs1 xs2 xs3 xs4 xs5 xs6 xs7) === L.zip7 (trim xs1) (trim xs2) (trim xs3) (trim xs4) (trim xs5) (trim xs6) (trim xs7)
+
+  , testProperty "heteroZip" $
+    \(Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
+      I.heteroZip xs1 xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, (x1, x2))) (I.toList xs1) (Map.toList xs2))
+  , testProperty "heteroZipWith" $
+    \(curry . applyFun -> f :: Int -> Word -> Char) (Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
+      I.heteroZipWith f xs1 xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, f x1 x2)) (I.toList xs1) (Map.toList xs2))
+
+  , testProperty "heteroZip laziness" $
+    \(Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
+      let xs1' = I.take (Map.size xs2) xs1 `I.prependList` undefined
+      in I.heteroZip xs1' xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, (x1, x2))) (I.toList xs1) (Map.toList xs2))
+  , testProperty "heteroZipWith laziness" $
+    \(curry . applyFun -> f :: Int -> Word -> Char) (Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
+      let xs1' = I.take (Map.size xs2) xs1 `I.prependList` undefined
+      in I.heteroZipWith f xs1' xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, f x1 x2)) (I.toList xs1) (Map.toList xs2))
 
   , testProperty "unzip" $
     \(Blind (xs :: Infinite (Int, Word))) ->

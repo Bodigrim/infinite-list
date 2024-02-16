@@ -113,6 +113,8 @@ module Data.List.Infinite (
   zipWith6,
   zip7,
   zipWith7,
+  heteroZip,
+  heteroZipWith,
   unzip,
   unzip3,
   unzip4,
@@ -164,9 +166,10 @@ import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (maybe)
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
+import qualified Data.Traversable as Traversable
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
-import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
+import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
 
 #if MIN_VERSION_base(4,10,0)
 import GHC.Exts (oneShot)
@@ -944,6 +947,24 @@ findIndex f = flip (foldr (\x acc !m -> if f x then m else acc (m + 1))) 0
 -- if no elements of the input list satisfy the predicate.
 findIndices :: (a -> Bool) -> Infinite a -> Infinite Word
 findIndices f = flip (foldr (\x acc !m -> (if f x then (m :<) else id) (acc (m + 1)))) 0
+
+-- | Zip an 'Infinite' with any 'Traversable', maintaining the shape of the
+-- latter.
+--
+-- >>> import Data.Functor.Compose (Compose(..))
+-- >>> heteroZip (0...) (Compose [Just 10, Nothing, Just 20])
+-- Compose [Just (0,10),Nothing,Just (1,20)]
+heteroZip :: Traversable t => Infinite a -> t b -> t (a, b)
+heteroZip = heteroZipWith (,)
+
+-- | Use a given function to zip an 'Infinite' with any 'Traversable',
+-- maintaining the shape of the latter.
+--
+-- >>> import Data.Functor.Compose (Compose(..))
+-- >>> heteroZipWith (+) (0...) (Compose [Just 10, Nothing, Just 20])
+-- Compose [Just 10,Nothing,Just 21]
+heteroZipWith :: Traversable t => (a -> b -> c) -> Infinite a -> t b -> t c
+heteroZipWith f = (snd .) . Traversable.mapAccumL (\(x :< xs) b -> (xs, f x b))
 
 -- | Unzip an infinite list of tuples.
 unzip :: Infinite (a, b) -> (Infinite a, Infinite b)
