@@ -954,6 +954,8 @@ findIndices f = flip (foldr (\x acc !m -> (if f x then (m :<) else id) (acc (m +
 -- >>> import Data.Functor.Compose (Compose(..))
 -- >>> heteroZip (0...) (Compose [Just 10, Nothing, Just 20])
 -- Compose [Just (0,10),Nothing,Just (1,20)]
+--
+-- @since 0.1.2
 heteroZip :: Traversable t => Infinite a -> t b -> t (a, b)
 heteroZip = heteroZipWith (,)
 
@@ -963,6 +965,8 @@ heteroZip = heteroZipWith (,)
 -- >>> import Data.Functor.Compose (Compose(..))
 -- >>> heteroZipWith (+) (0...) (Compose [Just 10, Nothing, Just 20])
 -- Compose [Just 10,Nothing,Just 21]
+--
+-- @since 0.1.2
 heteroZipWith :: Traversable t => (a -> b -> c) -> Infinite a -> t b -> t c
 heteroZipWith f = (snd .) . Traversable.mapAccumL (\(x :< xs) b -> (xs, f x b))
 
