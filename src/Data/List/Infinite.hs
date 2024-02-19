@@ -481,11 +481,17 @@ intercalate ~(a :| as) = foldr (\xs -> prependList xs . (a :<) . prependList as)
 transpose :: Functor f => f (Infinite a) -> Infinite (f a)
 transpose xss = fmap head xss :< transpose (fmap tail xss)
 
--- | Generate an infinite list of all subsequences of the argument.
+-- | Generate an infinite list of all finite subsequences of the argument.
+--
+-- >>> take 8 (subsequences (0...))
+-- [[],[0],[1],[0,1],[2],[0,2],[1,2],[0,1,2]]
 subsequences :: Infinite a -> Infinite [a]
 subsequences = ([] :<) . map NE.toList . subsequences1
 
--- | Generate an infinite list of all non-empty subsequences of the argument.
+-- | Generate an infinite list of all non-empty finite subsequences of the argument.
+--
+-- >>> take 7 (subsequences1 (0...))
+-- [0 :| [],1 :| [],0 :| [1],2 :| [],0 :| [2],1 :| [2],0 :| [1,2]]
 subsequences1 :: Infinite a -> Infinite (NonEmpty a)
 subsequences1 = foldr go
   where
@@ -494,7 +500,12 @@ subsequences1 = foldr go
       where
         f ys r = ys :< (x `NE.cons` ys) :< r
 
--- | Generate an infinite list of all permutations of the argument.
+-- | Generate an infinite list of all finite
+-- (such that only finite number of elements change their positions)
+-- permutations of the argument.
+--
+-- >>> take 6 (fmap (take 3) (permutations (0...)))
+-- [[0,1,2],[1,0,2],[2,1,0],[1,2,0],[2,0,1],[0,2,1]]
 permutations :: Infinite a -> Infinite (Infinite a)
 permutations xs0 = xs0 :< perms xs0 []
   where
