@@ -215,7 +215,7 @@ para f = go
     go :: Infinite a -> b
     go (x :< xs) = f x xs (go xs)
 
--- | Convert to a list. Use 'cycle' to go in the opposite direction.
+-- | Convert to a list. Use 'Data.List.Infinite.cycle' to go in the opposite direction.
 toList :: Infinite a -> [a]
 toList = foldr (:)
 {-# NOINLINE [0] toList #-}
@@ -234,7 +234,8 @@ toList = foldr (:)
 -- >>> Data.List.Infinite.take 10 (0...)
 -- [0,1,2,3,4,5,6,7,8,9]
 --
--- Beware that for finite types '(...)' applies 'cycle' atop of @[x..]@:
+-- Beware that for finite types '(...)' applies 'Data.List.Infinite.cycle'
+-- atop of @[x..]@:
 --
 -- >>> :set -XPostfixOperators
 -- >>> Data.List.Infinite.take 10 (EQ...)
@@ -280,7 +281,8 @@ ellipsis3Natural = iterate' (+ 1)
 -- >>> Data.List.Infinite.take 10 ((1,3)....)
 -- [1,3,5,7,9,11,13,15,17,19]
 --
--- Beware that for finite types '(....)' applies 'cycle' atop of @[x,y..]@:
+-- Beware that for finite types '(....)' applies 'Data.List.Infinite.cycle'
+-- atop of @[x,y..]@:
 --
 -- >>> :set -XPostfixOperators
 -- >>> Data.List.Infinite.take 10 ((EQ,GT)....)
@@ -335,7 +337,7 @@ ellipsis4Natural (from, thn)
        in iterate' (\n -> if n < d then from else n - d) from
 {-# INLINE ellipsis4Natural #-}
 
--- | Just a pointwise 'map'.
+-- | Just a pointwise 'Data.List.Infinite.map'.
 instance Functor Infinite where
   fmap = map
   (<$) = const . repeat
@@ -382,7 +384,7 @@ head (x :< _) = x
 tail :: Infinite a -> Infinite a
 tail (_ :< xs) = xs
 
--- | Split an infinite list into its 'head' and 'tail'.
+-- | Split an infinite list into its 'Data.List.Infinite.head' and 'Data.List.Infinite.tail'.
 uncons :: Infinite a -> (a, Infinite a)
 uncons (x :< xs) = (x, xs)
 
@@ -414,7 +416,7 @@ mapFB = (.)
 
 -- | Flatten out an infinite list of non-empty lists.
 --
--- The peculiar type with 'NonEmpty' is to guarantee that 'concat'
+-- The peculiar type with 'NonEmpty' is to guarantee that 'Data.List.Infinite.concat'
 -- is productive and results in an infinite list. Otherwise the
 -- concatenation of infinitely many @[a]@ could still be a finite list.
 concat :: Infinite (NonEmpty a) -> Infinite a
@@ -427,9 +429,9 @@ concat = foldr (\(x :| xs) acc -> x :< (xs `prependList` acc))
     build (\cons -> foldr (flip (F.foldr cons)) xs)
   #-}
 
--- | First 'map' every element, then 'concat'.
+-- | First 'Data.List.Infinite.map' every element, then 'Data.List.Infinite.concat'.
 --
--- The peculiar type with 'NonEmpty' is to guarantee that 'concatMap'
+-- The peculiar type with 'NonEmpty' is to guarantee that 'Data.List.Infinite.concatMap'
 -- is productive and results in an infinite list. Otherwise the
 -- concatenation of infinitely many @[b]@ could still be a finite list.
 concatMap :: (a -> NonEmpty b) -> Infinite a -> Infinite b
@@ -460,7 +462,7 @@ intersperse a = foldr (\x -> (x :<) . (a :<))
 -- | Insert a non-empty list between adjacent elements of an infinite list,
 -- and subsequently flatten it out.
 --
--- The peculiar type with 'NonEmpty' is to guarantee that 'intercalate'
+-- The peculiar type with 'NonEmpty' is to guarantee that 'Data.List.Infinite.intercalate'
 -- is productive and results in an infinite list. If separator is an empty list,
 -- concatenation of infinitely many @[a]@ could still be a finite list.
 intercalate :: NonEmpty a -> Infinite [a] -> Infinite a
@@ -544,7 +546,7 @@ scanlFB f cons = \elt g -> oneShot (\x -> let elt' = f x elt in elt' `cons` g el
     tail (scanl f a bs)
   #-}
 
--- | Same as 'scanl', but strict in accumulator.
+-- | Same as 'Data.List.Infinite.scanl', but strict in accumulator.
 scanl' :: (b -> a -> b) -> b -> Infinite a -> Infinite b
 scanl' f z0 = (z0 :<) . flip (foldr (\x acc z -> let !fzx = f z x in fzx :< acc fzx)) z0
 
@@ -620,7 +622,7 @@ iterateFB cons f = go
 "iterateFB" [1] iterateFB (:<) = iterate
   #-}
 
--- | Same as 'iterate', but strict in accumulator.
+-- | Same as 'Data.List.Infinite.iterate', but strict in accumulator.
 iterate' :: (a -> a) -> a -> Infinite a
 iterate' f = go
   where
@@ -700,7 +702,7 @@ unfoldr f = go
 
 -- | Generate an infinite list of @f@ 0, @f@ 1, @f@ 2...
 --
--- 'tabulate' and '(!!)' witness that 'Infinite' is
+-- 'tabulate' and '(Data.List.Infinite.!!)' witness that 'Infinite' is
 -- [@Representable@](https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable).
 tabulate :: (Word -> a) -> Infinite a
 tabulate f = unfoldr (\n -> (f n, n + 1)) 0
@@ -783,7 +785,8 @@ takeWhileFB p cons nil = \x r -> if p x then x `cons` r else nil
 
 -- | Drop the longest prefix satisfying a predicate.
 --
--- This function isn't productive (e. g., 'head' . 'dropWhile' @f@ won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.List.Infinite.dropWhile' @f@ won't terminate),
 -- if all elements of the input list satisfy the predicate.
 dropWhile :: (a -> Bool) -> Infinite a -> Infinite a
 dropWhile p = para (\x xs -> if p x then id else const (x :< xs))
@@ -791,7 +794,7 @@ dropWhile p = para (\x xs -> if p x then id else const (x :< xs))
 -- | Split an infinite list into the longest prefix satisfying a predicate and the rest.
 --
 -- This function isn't productive in the second component of the tuple
--- (e. g., 'head' . 'snd' . 'span' @f@ won't terminate),
+-- (e. g., 'Data.List.Infinite.head' '.' 'snd' '.' 'Data.List.Infinite.span' @f@ won't terminate),
 -- if all elements of the input list satisfy the predicate.
 span :: (a -> Bool) -> Infinite a -> ([a], Infinite a)
 span p = para (\x xs -> if p x then first (x :) else const ([], x :< xs))
@@ -799,7 +802,7 @@ span p = para (\x xs -> if p x then first (x :) else const ([], x :< xs))
 -- | Split an infinite list into the longest prefix /not/ satisfying a predicate and the rest.
 --
 -- This function isn't productive in the second component of the tuple
--- (e. g., 'head' . 'snd' . 'break' @f@ won't terminate),
+-- (e. g., 'Data.List.Infinite.head' '.' 'snd' '.' 'Data.List.Infinite.break' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
 break :: (a -> Bool) -> Infinite a -> ([a], Infinite a)
 break = span . (not .)
@@ -818,7 +821,7 @@ stripPrefix (p : ps) = flip (para alg) (p :| ps)
 group :: Eq a => Infinite a -> Infinite (NonEmpty a)
 group = groupBy (==)
 
--- | Overloaded version of 'group'.
+-- | Overloaded version of 'Data.List.Infinite.group'.
 groupBy :: (a -> a -> Bool) -> Infinite a -> Infinite (NonEmpty a)
 -- Quite surprisingly, 'groupBy' is not a simple catamorphism.
 -- Since @f@ is not guaranteed to be transitive, it's a full-blown
@@ -879,13 +882,15 @@ find f = foldr (\a a' -> if f a then a else a')
 
 -- | Filter an infinite list, removing elements which does not satisfy a predicate.
 --
--- This function isn't productive (e. g., 'head' . 'filter' @f@ won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.List.Infinite.filter' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
 --
 -- A common objection is that since it could happen that no elements of the input
 -- satisfy the predicate, the return type should be @[a]@ instead of 'Infinite' @a@.
--- This would not however make 'filter' any more productive. Note that such
--- hypothetical 'filter' could not ever generate @[]@ constructor, only @(:)@, so
+-- This would not however make 'Data.List.Infinite.filter' any more productive.
+-- Note that such hypothetical 'Data.List.Infinite.filter' could not ever
+-- generate @[]@ constructor, only @(:)@, so
 -- we would just have a more lax type gaining nothing instead. Same reasoning applies
 -- to other filtering \/ partitioning \/ searching functions.
 filter :: (a -> Bool) -> Infinite a -> Infinite a
@@ -916,7 +921,7 @@ filterFB cons f x r
 -- satisfying a predicate, and the second one the rest.
 --
 -- This function isn't productive in the first component of the tuple
--- (e. g., 'head' . 'Data.Tuple.fst' . 'partition' @f@ won't terminate),
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.Tuple.fst' '.' 'Data.List.Infinite.partition' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
 -- Same for the second component,
 -- if all elements of the input list satisfy the predicate.
@@ -942,7 +947,8 @@ elemIndex = findIndex . (==)
 
 -- | Return indices of all elements, equal to a given.
 --
--- This function isn't productive (e. g., 'head' . 'elemIndices' @f@ won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.List.Infinite.elemIndices' @f@ won't terminate),
 -- if no elements of the input list are equal the given one.
 elemIndices :: Eq a => a -> Infinite a -> Infinite Word
 elemIndices = findIndices . (==)
@@ -954,7 +960,8 @@ findIndex f = flip (foldr (\x acc !m -> if f x then m else acc (m + 1))) 0
 
 -- | Return indices of all elements, satisfying a predicate.
 --
--- This function isn't productive (e. g., 'head' . 'elemIndices' @f@ won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.'' 'Data.List.Infinite.findIndices' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
 findIndices :: (a -> Bool) -> Infinite a -> Infinite Word
 findIndices f = flip (foldr (\x acc !m -> (if f x then (m :<) else id) (acc (m + 1)))) 0
@@ -1014,7 +1021,7 @@ unzip7 = foldr (\(a, b, c, d, e, f, g) ~(as, bs, cs, ds, es, fs, gs) -> (a :< as
 -- | Split an infinite string into lines, by @\\n@. Empty lines are preserved.
 --
 -- In contrast to their counterparts from "Data.List", it holds that
--- 'unlines' @.@ 'lines' @=@ 'id'.
+-- 'Data.List.Infinite.unlines' @.@ 'Data.List.Infinite.lines' @=@ 'id'.
 lines :: Infinite Char -> Infinite [Char]
 lines = foldr go
   where
@@ -1024,7 +1031,7 @@ lines = foldr go
 -- | Concatenate lines together with @\\n@.
 --
 -- In contrast to their counterparts from "Data.List", it holds that
--- 'unlines' @.@ 'lines' @=@ 'id'.
+-- 'Data.List.Infinite.unlines' @.@ 'Data.List.Infinite.lines' @=@ 'id'.
 unlines :: Infinite [Char] -> Infinite Char
 unlines = foldr (\l xs -> l `prependList` ('\n' :< xs))
 
@@ -1066,9 +1073,9 @@ wordsFB cons = uncurry repack . foldr go
 
 -- | Concatenate words together with a space.
 --
--- The function is meant to be a counterpart of with 'words'.
+-- The function is meant to be a counterpart of with 'Data.List.Infinite.words'.
 -- If you need to concatenate together 'Infinite' @[@'Char'@]@,
--- use 'intercalate' @(@'pure' @' ')@.
+-- use 'Data.List.Infinite.intercalate' @(@'pure' @' ')@.
 unwords :: Infinite (NonEmpty Char) -> Infinite Char
 unwords = foldr (\(l :| ls) acc -> l :< ls `prependList` (' ' :< acc))
 
@@ -1088,7 +1095,7 @@ unwordsFB cons = foldr (\(l :| ls) acc -> l `cons` List.foldr cons (' ' `cons` a
 nub :: Eq a => Infinite a -> Infinite a
 nub = nubBy (==)
 
--- | Overloaded version of 'nub'.
+-- | Overloaded version of 'Data.List.Infinite.nub'.
 nubBy :: (a -> a -> Bool) -> Infinite a -> Infinite a
 nubBy eq = flip (foldr (\x acc seen -> if List.any (`eq` x) seen then acc seen else x :< acc (x : seen))) []
 
@@ -1096,7 +1103,7 @@ nubBy eq = flip (foldr (\x acc seen -> if List.any (`eq` x) seen then acc seen e
 delete :: Eq a => a -> Infinite a -> Infinite a
 delete = deleteBy (==)
 
--- | Overloaded version of 'delete'.
+-- | Overloaded version of 'Data.List.Infinite.delete'.
 deleteBy :: (a -> b -> Bool) -> a -> Infinite b -> Infinite b
 deleteBy eq x = para (\y ys acc -> if eq x y then ys else y :< acc)
 
@@ -1105,7 +1112,7 @@ deleteBy eq x = para (\y ys acc -> if eq x y then ys else y :< acc)
 (\\) :: Eq a => Infinite a -> [a] -> Infinite a
 (\\) = deleteFirstsBy (==)
 
--- | Overloaded version of '(\\)'.
+-- | Overloaded version of '(Data.List.Infinite.\\)'.
 deleteFirstsBy :: (a -> b -> Bool) -> Infinite b -> [a] -> Infinite b
 deleteFirstsBy eq = List.foldl (flip (deleteBy eq))
 
@@ -1115,7 +1122,7 @@ deleteFirstsBy eq = List.foldl (flip (deleteBy eq))
 union :: Eq a => [a] -> Infinite a -> Infinite a
 union = unionBy (==)
 
--- | Overloaded version of 'union'.
+-- | Overloaded version of 'Data.List.Infinite.union'.
 unionBy :: (a -> a -> Bool) -> [a] -> Infinite a -> Infinite a
 unionBy eq xs ys = xs `prependList` List.foldl (flip (deleteBy eq)) (nubBy eq ys) xs
 
@@ -1124,7 +1131,7 @@ unionBy eq xs ys = xs `prependList` List.foldl (flip (deleteBy eq)) (nubBy eq ys
 insert :: Ord a => a -> Infinite a -> Infinite a
 insert = insertBy compare
 
--- | Overloaded version of 'insert'.
+-- | Overloaded version of 'Data.List.Infinite.insert'.
 insertBy :: (a -> a -> Ordering) -> a -> Infinite a -> Infinite a
 insertBy cmp x = para (\y ys acc -> case cmp x y of GT -> y :< acc; _ -> x :< y :< ys)
 
@@ -1133,7 +1140,7 @@ insertBy cmp x = para (\y ys acc -> case cmp x y of GT -> y :< acc; _ -> x :< y 
 intersect :: Eq a => Infinite a -> [a] -> Infinite a
 intersect = intersectBy (==)
 
--- | Overloaded version of 'intersect'.
+-- | Overloaded version of 'Data.List.Infinite.intersect'.
 intersectBy :: (a -> b -> Bool) -> Infinite a -> [b] -> Infinite a
 intersectBy eq xs ys = filter (\x -> List.any (eq x) ys) xs
 
@@ -1143,7 +1150,8 @@ prependList = flip (F.foldr (:<))
 
 -- | Apply a function to every element of an infinite list and collect 'Just' results.
 --
--- This function isn't productive (e. g., 'head' . 'mapMaybe' @f@ won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'mapMaybe' @f@ won't terminate),
 -- if no elements of the input list result in 'Just'.
 --
 -- @since 0.1.1
@@ -1152,7 +1160,8 @@ mapMaybe = foldr . (maybe id (:<) .)
 
 -- | Keep only 'Just' elements.
 --
--- This function isn't productive (e. g., 'head' . 'catMaybes' won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'catMaybes' won't terminate),
 -- if no elements of the input list are 'Just'.
 --
 -- @since 0.1.1
@@ -1162,8 +1171,8 @@ catMaybes = foldr (maybe id (:<))
 -- | Apply a function to every element of an infinite list and
 -- separate 'Data.Either.Left' and 'Data.Either.Right' results.
 --
--- This function isn't productive (e. g., 'head' . 'Data.Tuple.fst' .
--- 'mapEither' @f@ won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.Tuple.fst' '.' 'mapEither' @f@ won't terminate),
 -- if no elements of the input list result in 'Data.Either.Left' or 'Data.Either.Right'.
 --
 -- @since 0.1.1
@@ -1172,8 +1181,8 @@ mapEither = foldr . (either (first . (:<)) (second . (:<)) .)
 
 -- | Separate 'Data.Either.Left' and 'Data.Either.Right' elements.
 --
--- This function isn't productive (e. g., 'head' . 'Data.Tuple.fst' . 'partitionEithers'
--- won't terminate),
+-- This function isn't productive
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.Tuple.fst' '.' 'partitionEithers' won't terminate),
 -- if no elements of the input list are 'Data.Either.Left' or 'Data.Either.Right'.
 --
 -- @since 0.1.1
