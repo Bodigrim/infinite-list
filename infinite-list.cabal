@@ -43,8 +43,9 @@ library
     exposed-modules:  Data.List.Infinite
     hs-source-dirs:   src
     other-modules:
-        Data.List.Infinite.Zip
         Data.List.Infinite.Internal
+        Data.List.Infinite.Set
+        Data.List.Infinite.Zip
 
     default-language: Haskell2010
     ghc-options:      -Wall
