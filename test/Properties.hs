@@ -423,6 +423,11 @@ main = defaultMain $ testGroup "All"
       fmap getLarge (I.take 3 (I.nub ys)) === fmap getLarge (L.take 3 (L.nub (I.foldr (:) ys)))
   , testProperty "nub laziness" $
     I.head (I.nub ('q' :< undefined)) === 'q'
+  , testProperty "nubOrd" $
+    \(Blind (ys :: Infinite (Large Int))) ->
+      fmap getLarge (I.take 3 (I.nubOrd ys)) === fmap getLarge (L.take 3 (L.nub (I.foldr (:) ys)))
+  , testProperty "nubOrd laziness" $
+    I.head (I.nubOrd ('q' :< undefined)) === 'q'
 
   , testProperty "delete" $
     \(x :: Ordering) (Blind xs) ->

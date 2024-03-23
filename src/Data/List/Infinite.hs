@@ -130,6 +130,7 @@ module Data.List.Infinite (
 
   -- * Set operations
   nub,
+  nubOrd,
   delete,
   (\\),
   union,
@@ -178,6 +179,7 @@ import GHC.Magic (oneShot)
 #endif
 
 import Data.List.Infinite.Internal
+import qualified Data.List.Infinite.Set as Set
 import Data.List.Infinite.Zip
 
 -- | Right-associative fold of an infinite list, necessarily lazy in the accumulator.
@@ -1092,12 +1094,18 @@ unwordsFB cons = foldr (\(l :| ls) acc -> l `cons` List.foldr cons (' ' `cons` a
   #-}
 
 -- | Remove duplicate from a list, keeping only the first occurrence of each element.
+-- Because of a very weak constraint on @a@, this operation takes /O/(/n/²) time.
+-- Consider using 'nubOrd' instead.
 nub :: Eq a => Infinite a -> Infinite a
 nub = nubBy (==)
 
 -- | Overloaded version of 'Data.List.Infinite.nub'.
 nubBy :: (a -> a -> Bool) -> Infinite a -> Infinite a
 nubBy eq = flip (foldr (\x acc seen -> if List.any (`eq` x) seen then acc seen else x :< acc (x : seen))) []
+
+-- | Same as 'nub', but asymptotically faster, taking only /O/(/n/ log /n/) time.
+nubOrd :: Ord a => Infinite a -> Infinite a
+nubOrd = flip (foldr (\x acc seen -> if Set.member x seen then acc seen else x :< acc (Set.insert x seen))) Set.empty
 
 -- | Remove all occurrences of an element from an infinite list.
 delete :: Eq a => a -> Infinite a -> Infinite a
