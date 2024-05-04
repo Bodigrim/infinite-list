@@ -114,17 +114,17 @@ main = defaultMain $ testGroup "All"
   , testProperty "intersperse" $
     \(x :: Int) (Blind xs) ->
       I.take 19 (I.intersperse x xs) === L.intersperse x (trim xs)
-  , testProperty "intersperse laziness 1" $
+  , testProperty "intersperse laziness 1" $ once $
     I.head (I.intersperse undefined ('q' :< undefined)) === 'q'
-  , testProperty "intersperse laziness 2" $
+  , testProperty "intersperse laziness 2" $ once $
     I.take 2 (I.intersperse 'w' ('q' :< undefined)) === "qw"
 
   , testProperty "intercalate" $
     \(x :: NonEmpty Int) (Blind xs) ->
       I.take (sum (map length (trim xs)) + 9 * length x) (I.intercalate x xs) === L.intercalate (NE.toList x) (trim xs)
-  , testProperty "intercalate laziness 1" $
+  , testProperty "intercalate laziness 1" $ once $
     I.take 3 (I.intercalate undefined ("foo" :< undefined)) === "foo"
-  , testProperty "intercalate laziness 2" $
+  , testProperty "intercalate laziness 2" $ once $
     I.take 6 (I.intercalate (NE.fromList "bar") ("foo" :< undefined)) === "foobar"
 
   , testProperty "interleave 1" $
@@ -133,7 +133,7 @@ main = defaultMain $ testGroup "All"
   , testProperty "interleave 2" $
     \(Blind (xs :: Infinite Int)) (Blind ys) ->
       trim (I.map snd (I.filter fst (I.zip (I.cycle (False :| [True])) (I.interleave xs ys)))) === trim ys
-  , testProperty "interleave laziness" $
+  , testProperty "interleave laziness" $ once $
     I.head (I.interleave ('a' :< undefined) undefined) === 'a'
 
   , testProperty "transpose []" $
@@ -142,23 +142,23 @@ main = defaultMain $ testGroup "All"
   , testProperty "transpose NE" $
     \(fmap getBlind -> xss :: NonEmpty (Infinite Int)) ->
       NE.fromList (trim (I.transpose xss)) === NE.transpose (NE.map (NE.fromList . trim) xss)
-  , testProperty "transpose laziness 1" $
+  , testProperty "transpose laziness 1" $ once $
     I.head (I.transpose ['a' :< undefined, 'b' :< undefined]) === "ab"
-  , testProperty "transpose laziness 2" $
+  , testProperty "transpose laziness 2" $ once $
     I.head (I.transpose (('a' :< undefined) :| ['b' :< undefined])) === 'a' :| "b"
 
   , testProperty "subsequences" $
     \(Blind (xs :: Infinite Int)) ->
       I.take 16 (I.subsequences xs) === L.subsequences (I.take 4 xs)
-  , testProperty "subsequences laziness 1" $
+  , testProperty "subsequences laziness 1" $ once $
     I.head (I.subsequences undefined) === ""
-  , testProperty "subsequences laziness 2" $
+  , testProperty "subsequences laziness 2" $ once $
     I.take 2 (I.subsequences ('q' :< undefined)) === ["", "q"]
 
   , testProperty "permutations" $
     \(Blind (xs :: Infinite Int)) ->
       map (I.take 4) (I.take 24 (I.permutations xs)) === L.permutations (I.take 4 xs)
-  , testProperty "permutations laziness" $
+  , testProperty "permutations laziness" $ once $
     I.take 6 (I.map (I.take 3) (I.permutations ('q' :< 'w' :< 'e' :< undefined))) === ["qwe","wqe","ewq","weq","eqw","qew"]
 
   , testProperty "... Bool" $
@@ -213,34 +213,34 @@ main = defaultMain $ testGroup "All"
   , testProperty "scanl" $
     \(curry . applyFun -> f :: Word -> Int -> Word) s (Blind xs) ->
       trim1 (I.scanl f s xs) === L.scanl f s (trim xs)
-  , testProperty "scanl laziness" $
+  , testProperty "scanl laziness" $ once $
     I.head (I.scanl undefined 'q' undefined) === 'q'
   , testProperty "scanl'" $
     \(curry . applyFun -> f :: Word -> Int -> Word) s (Blind xs) ->
       trim1 (I.scanl' f s xs) === L.scanl' f s (trim xs)
-  , testProperty "scanl' laziness" $
+  , testProperty "scanl' laziness" $ once $
     I.head (I.scanl' undefined 'q' undefined) === 'q'
   , testProperty "scanl1" $
     \(curry . applyFun -> f :: Int -> Int -> Int) (Blind xs) ->
       trim (I.scanl1 f xs) === L.scanl1 f (trim xs)
-  , testProperty "scanl1 laziness" $
+  , testProperty "scanl1 laziness" $ once $
     I.head (I.scanl1 undefined ('q' :< undefined)) === 'q'
 
   , testProperty "mapAccumL" $
     \(curry . applyFun -> f :: Bool -> Int -> (Bool, Word)) (Blind xs) ->
       trim (I.mapAccumL f False xs) === snd (L.mapAccumL f False (trim xs))
-  , testProperty "mapAccumL laziness" $
+  , testProperty "mapAccumL laziness" $ once $
     I.head (I.mapAccumL (\_ x -> (undefined, x)) undefined ('q' :< undefined)) === 'q'
 
   , testProperty "iterate" $
     \(applyFun -> f :: Int -> Int) s ->
       trim (I.iterate f s) === L.take 10 (L.iterate f s)
-  , testProperty "iterate laziness" $
+  , testProperty "iterate laziness" $ once $
       I.head (I.iterate undefined 'q') === 'q'
   , testProperty "iterate'" $
     \(applyFun -> f :: Int -> Int) s ->
       trim (I.iterate' f s) === L.take 10 (L.iterate f s)
-  , testProperty "iterate' laziness" $
+  , testProperty "iterate' laziness" $ once $
       I.head (I.iterate' undefined 'q') === 'q'
 
   , testProperty "repeat" $
@@ -250,43 +250,43 @@ main = defaultMain $ testGroup "All"
   , testProperty "cycle" $
     \(xs :: NonEmpty Int) ->
       trim (I.cycle xs) === L.take 10 (L.cycle (NE.toList xs))
-  , testProperty "cycle laziness" $
+  , testProperty "cycle laziness" $ once $
     I.head (I.cycle ('q' :| undefined)) === 'q'
 
   , testProperty "unfoldr" $
     \(applyFun -> f :: Word -> (Int, Word)) s ->
       trim (I.unfoldr f s) === L.take 10 (L.unfoldr (Just . f) s)
-  , testProperty "unfoldr laziness" $
+  , testProperty "unfoldr laziness" $ once $
     I.head (I.unfoldr (, undefined) 'q') === 'q'
 
   , testProperty "take" $
     \n (Blind (xs :: Infinite Int)) ->
       L.take 10 (I.take n xs) === L.take n (trim xs)
-  , testProperty "take laziness 1" $
+  , testProperty "take laziness 1" $ once $
     I.take 0 undefined === ""
-  , testProperty "take laziness 2" $
+  , testProperty "take laziness 2" $ once $
     I.take 1 ('q' :< undefined) === "q"
   , testProperty "drop" $
     \n (Blind (xs :: Infinite Int)) ->
       trim (I.drop n xs) === L.drop n (I.take (max n 0 + 10) xs)
-  , testProperty "drop laziness" $
+  , testProperty "drop laziness" $ once $
     I.head (I.drop 0 ('q' :< undefined)) === 'q'
   , testProperty "splitAt" $
     \n (Blind (xs :: Infinite Int)) ->
       bimap (L.take 10) trim (I.splitAt n xs) ===
         first (L.take 10) (L.splitAt n (I.take (max n 0 + 10) xs))
-  , testProperty "splitAt laziness 1" $
+  , testProperty "splitAt laziness 1" $ once $
     fst (I.splitAt 0 undefined) === ""
-  , testProperty "splitAt laziness 2" $
+  , testProperty "splitAt laziness 2" $ once $
     fst (I.splitAt 1 ('q' :< undefined)) === "q"
 
   , testProperty "takeWhile" $
     \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
       L.take 10 (L.takeWhile f (I.foldr (:) xs)) ===
         L.take 10 (I.takeWhile f xs)
-  , testProperty "takeWhile laziness 1" $
+  , testProperty "takeWhile laziness 1" $ once $
       L.null (I.takeWhile (const False) ('q' :< undefined))
-  , testProperty "takeWhile laziness 2" $
+  , testProperty "takeWhile laziness 2" $ once $
       L.head (I.takeWhile (const True) ('q' :< undefined)) === 'q'
   , testProperty "fst . span" $
     \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
@@ -307,26 +307,26 @@ main = defaultMain $ testGroup "All"
   , testProperty "snd . break" $
     \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
       trim (L.foldr (:<) (snd (I.break f xs)) (I.takeWhile (not . f) xs)) === trim xs
-  , testProperty "span laziness" $
+  , testProperty "span laziness" $ once $
     L.head (fst (I.span (/= '\n') ('q' :< undefined))) === 'q'
-  , testProperty "break laziness" $
+  , testProperty "break laziness" $ once $
     L.head (fst (I.break (== '\n') ('q' :< undefined))) === 'q'
 
   , testProperty "stripPrefix" $
     \(xs :: [Int]) (Blind (ys :: Infinite Int)) ->
       fmap trim (I.stripPrefix xs ys) === fmap (L.take 10) (L.stripPrefix xs (I.take (length xs + 10) ys))
-  , testProperty "stripPrefix laziness 1" $
+  , testProperty "stripPrefix laziness 1" $ once $
     isNothing (I.stripPrefix ('q' : undefined) ('w' :< undefined))
-  , testProperty "stripPrefix laziness 2" $
+  , testProperty "stripPrefix laziness 2" $ once $
     isJust (I.stripPrefix "foo" ('f' :< 'o' :< 'o' :< undefined))
   , testProperty "isPrefixOf" $
     \(xs :: [Int]) (Blind (ys :: Infinite Int)) ->
       I.isPrefixOf xs ys === L.isPrefixOf xs (I.take (length xs + 10) ys)
-  , testProperty "isPrefixOf laziness 1" $
+  , testProperty "isPrefixOf laziness 1" $ once $
     I.isPrefixOf "" undefined
-  , testProperty "isPrefixOf laziness 2" $
+  , testProperty "isPrefixOf laziness 2" $ once $
     not (I.isPrefixOf ('q' : undefined) ('w' :< undefined))
-  , testProperty "isPrefixOf laziness 3" $
+  , testProperty "isPrefixOf laziness 3" $ once $
     I.isPrefixOf "foo" ('f' :< 'o' :< 'o' :< undefined)
 
   , testProperty "zip" $
@@ -386,24 +386,24 @@ main = defaultMain $ testGroup "All"
   , testProperty "lines" $
     \(Blind (xs :: Infinite Char)) ->
       I.take 3 (I.lines xs) === L.take 3 (L.lines (I.foldr (:) xs))
-  , testProperty "lines laziness 1" $
+  , testProperty "lines laziness 1" $ once $
     L.head (I.head (I.lines ('q' :< undefined))) === 'q'
-  , testProperty "lines laziness 2" $
+  , testProperty "lines laziness 2" $ once $
     L.null (I.head (I.lines ('\n' :< undefined)))
   , testProperty "words" $
     \(Blind (xs :: Infinite Char)) ->
       I.take 3 (I.map NE.toList (I.words xs)) === L.take 3 (L.words (I.foldr (:) xs))
-  , testProperty "words laziness" $
+  , testProperty "words laziness" $ once $
     NE.head (I.head (I.words ('q' :< undefined))) === 'q'
   , testProperty "unlines" $
     \(Blind (xs :: Infinite [Char])) ->
       trim (I.unlines xs) === L.take 10 (L.unlines (trim xs))
-  , testProperty "unlines laziness" $
+  , testProperty "unlines laziness" $ once $
     I.take 2 (I.unlines ("q" :< undefined)) === "q\n"
   , testProperty "unwords" $
     \(Blind (xs :: Infinite (NonEmpty Char))) ->
       trim (I.unwords xs) === L.take 10 (L.unwords (L.map NE.toList (I.foldr (:) xs)))
-  , testProperty "unwords laziness" $
+  , testProperty "unwords laziness" $ once $
     I.take 2 (I.unwords (('q' :| []) :< undefined)) === "q "
   , testProperty "unlines . lines" $
     \(Blind (xs :: Infinite Char)) ->
@@ -416,52 +416,52 @@ main = defaultMain $ testGroup "All"
     \(curry . applyFun -> f :: Ordering -> Ordering -> Bool) (Blind ys) ->
       all (\x -> not $ all (f x) [minBound..maxBound]) [minBound..maxBound] ==>
         trim (I.groupBy f ys) === L.take 10 (NE.groupBy f (I.foldr (:) ys))
-  , testProperty "group laziness" $
+  , testProperty "group laziness" $ once $
     NE.head (I.head (I.group ('q' :< undefined))) === 'q'
   , testProperty "nub" $
     \(Blind (ys :: Infinite (Large Int))) ->
       fmap getLarge (I.take 3 (I.nub ys)) === fmap getLarge (L.take 3 (L.nub (I.foldr (:) ys)))
-  , testProperty "nub laziness" $
+  , testProperty "nub laziness" $ once $
     I.head (I.nub ('q' :< undefined)) === 'q'
   , testProperty "nubOrd" $
     \(Blind (ys :: Infinite (Large Int))) ->
       fmap getLarge (I.take 3 (I.nubOrd ys)) === fmap getLarge (L.take 3 (L.nub (I.foldr (:) ys)))
-  , testProperty "nubOrd laziness" $
+  , testProperty "nubOrd laziness" $ once $
     I.head (I.nubOrd ('q' :< undefined)) === 'q'
 
   , testProperty "delete" $
     \(x :: Ordering) (Blind xs) ->
       trim (I.delete x xs) === L.take 10 (L.delete x (I.foldr (:) xs))
-  , testProperty "delete laziness" $
+  , testProperty "delete laziness" $ once $
     I.head (I.delete 'q' ('w' :< undefined)) === 'w'
   , testProperty "insert" $
     \(x :: Int) (Blind xs) ->
       trim (I.insert x xs) === L.take 10 (L.insert x (I.foldr (:) xs))
-  , testProperty "insert laziness" $
+  , testProperty "insert laziness" $ once $
     I.take 2 (I.insert 'q' ('w' :< undefined)) === "qw"
 
   , testProperty "\\\\" $
     \(Blind (xs :: Infinite Ordering)) ys ->
       trim (xs I.\\ ys) === L.take 10 (I.foldr (:) xs L.\\ ys)
-  , testProperty "\\\\ laziness" $
+  , testProperty "\\\\ laziness" $ once $
     I.head (('q' :< undefined) I.\\ []) === 'q'
   , testProperty "union" $
     \xs (Blind (ys :: Infinite Ordering)) ->
       I.take 3 (I.union xs ys) === L.take 3 (xs `L.union` I.foldr (:) ys)
-  , testProperty "union laziness" $
+  , testProperty "union laziness" $ once $
     I.head (I.union ('q' : undefined) undefined) === 'q'
   , testProperty "intersect" $
     \(Blind (xs :: Infinite Ordering)) ys -> not (null ys) ==>
       I.head (I.intersect xs ys) === L.head (I.foldr (:) xs `L.intersect` ys)
-  , testProperty "intersect laziness" $
+  , testProperty "intersect laziness" $ once $
     I.head (I.intersect ('q' :< undefined) ('q' : undefined)) === 'q'
 
   , testProperty "inits" $
     \(Blind (xs :: Infinite Int)) ->
       I.take 21 (I.inits xs) === L.inits (I.take 20 xs)
-  , testProperty "inits laziness 1" $
+  , testProperty "inits laziness 1" $ once $
     L.null (I.head (I.inits undefined))
-  , testProperty "inits laziness 2" $
+  , testProperty "inits laziness 2" $ once $
     I.take 2 (I.inits ('q' :< undefined)) === ["", "q"]
   , testProperty "inits1" $
     \(Blind (xs :: Infinite Int)) ->
@@ -469,20 +469,20 @@ main = defaultMain $ testGroup "All"
   , testProperty "tails" $
     \(Blind (xs :: Infinite Int)) ->
       map trim (trim (I.tails xs)) === map (L.take 10) (L.take 10 (L.tails (I.take 20 xs)))
-  , testProperty "tails laziness" $
+  , testProperty "tails laziness" $ once $
     I.head (I.head (I.tails ('q' :< undefined))) === 'q'
 
   , testProperty "lookup" $
     \(xs :: [(Int, Word)]) y zs ->
       let pairs = NE.fromList (xs ++ (y : zs)) in
         Just (I.lookup (fst y) (I.cycle pairs)) === L.lookup (fst y) (NE.toList pairs)
-  , testProperty "lookup laziness" $
+  , testProperty "lookup laziness" $ once $
     I.lookup True ((True, 'q') :< undefined) === 'q'
   , testProperty "find" $
     \(xs :: [(Int, Word)]) y zs ->
       let pairs = NE.fromList (xs ++ (y : zs)) in
         Just (I.find ((== snd y) . snd) (I.cycle pairs)) === L.find ((== snd y) . snd) (NE.toList pairs)
-  , testProperty "find laziness" $
+  , testProperty "find laziness" $ once $
     I.find odd (1 :< undefined) === (1 :: Int)
 
   , testProperty "filter" $
@@ -530,7 +530,7 @@ main = defaultMain $ testGroup "All"
         let is = L.elemIndices x (xs ++ [x]) in
           map fromIntegral (I.take (length is) (I.elemIndices x zs)) === is
 
-  , testProperty ">>= 32bit" $
+  , testProperty ">>= 32bit" $ once $
     let ix = maxBound :: Word32 in
       finiteBitSize (0 :: Word) /= 32 ||
         I.head (I.tail (I.genericDrop ix (I.repeat () >>= const (False :< I.repeat True))))
