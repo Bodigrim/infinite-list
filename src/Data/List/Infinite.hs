@@ -45,6 +45,8 @@ module Data.List.Infinite (
   scanl',
   scanl1,
   mapAccumL,
+  traverse_,
+  for_,
 
   -- * Transformations
   concat,
@@ -167,6 +169,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe (maybe)
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
 import qualified Data.Traversable as Traversable
+import Data.Void (Void)
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
 import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
@@ -1188,3 +1191,26 @@ mapEither = foldr . (either (first . (:<)) (second . (:<)) .)
 -- @since 0.1.1
 partitionEithers :: Infinite (Either a b) -> (Infinite a, Infinite b)
 partitionEithers = foldr (either (first . (:<)) (second . (:<)))
+
+-- | Map each element to an action, evaluate these actions from left to right
+-- and ignore the results. Note that the return type is 'Void' instead of usual @()@.
+--
+-- >>> traverse_ print (0...) -- hit Ctrl+C to terminate
+-- 0
+-- 1
+-- 2Interrupted
+--
+-- 'traverse_' could be productive for some short-circuiting @f@:
+--
+-- >>> traverse_ (\x -> if x > 10 then Left x else Right ()) (0...)
+-- Left 11
+--
+-- @since 0.1.2
+traverse_ :: Applicative f => (a -> f ()) -> Infinite a -> f Void
+traverse_ = foldr . ((*>) .)
+
+-- | Flipped 'traverse_'.
+--
+-- @since 0.1.2
+for_ :: Applicative f => Infinite a -> (a -> f ()) -> f Void
+for_ = flip traverse_

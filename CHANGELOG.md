@@ -1,6 +1,7 @@
 # 0.1.2
 
 * Add `heteroZip` and `heteroZipWith`.
+* Add `traverse_` and `for_`.
 
 # 0.1.1
 
