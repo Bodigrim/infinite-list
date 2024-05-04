@@ -530,6 +530,9 @@ main = defaultMain $ testGroup "All"
         let is = L.elemIndices x (xs ++ [x]) in
           map fromIntegral (I.take (length is) (I.elemIndices x zs)) === is
 
+  , testProperty "for_" $ once $
+    I.for_ (0 I....) (\x -> if x > 10 then Left x else Right ()) === Left (11 :: Int)
+
   , testProperty ">>= 32bit" $ once $
     let ix = maxBound :: Word32 in
       finiteBitSize (0 :: Word) /= 32 ||
