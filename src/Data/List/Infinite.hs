@@ -8,6 +8,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Redundant lambda" #-}
+{-# HLINT ignore "Avoid restricted function" #-}
 
 -- |
 -- Copyright:   (c) 2022 Bodigrim
@@ -157,6 +158,7 @@ module Data.List.Infinite (
 
 import Control.Applicative (Applicative (..))
 import Control.Arrow (first, second)
+import Control.Exception (assert)
 import Control.Monad (Monad (..))
 import Data.Bits ((.&.))
 import Data.Char (Char, isSpace)
@@ -164,6 +166,7 @@ import Data.Coerce (coerce)
 import Data.Either (Either, either)
 import Data.Eq (Eq, (/=), (==))
 import qualified Data.Foldable as F
+import Data.Function (($))
 import Data.Functor (Functor (..))
 import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty (..))
@@ -174,7 +177,7 @@ import qualified Data.Traversable as Traversable
 import Data.Void (Void)
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
-import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
+import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
 
 #if MIN_VERSION_base(4,10,0)
 import GHC.Exts (oneShot)
@@ -938,11 +941,18 @@ partition f = foldr (\a -> if f a then first (a :<) else second (a :<))
 -- On contrary to @Data.List.@'List.!!', this function takes 'Word' instead of 'Int'
 -- to avoid 'Prelude.error' on negative arguments.
 --
+-- If you are concerned that unsigned indices may accidentally underflow,
+-- compile with [@-fno-ignore-asserts@](https://downloads.haskell.org/ghc/latest/docs/users_guide/using-optimisation.html#ghc-flag--fignore-asserts):
+-- there is an assert checking that the index does not exceed
+-- 'fromIntegral' ('maxBound' :: 'Int').
+--
 -- This is actually @index@ from
 -- [@Representable@](https://hackage.haskell.org/package/adjunctions/docs/Data-Functor-Rep.html#t:Representable)
 -- type class in disguise.
 (!!) :: Infinite a -> Word -> a
-(!!) = foldr (\x acc m -> if m == 0 then x else acc (m - 1))
+(!!) xs n =
+  assert (n <= fromIntegral (maxBound :: Int)) $
+    foldr (\x acc m -> if m == 0 then x else acc (m - 1)) xs n
 
 infixl 9 !!
 
