@@ -842,6 +842,17 @@ groupBy f = go
         (ys, zs) = span (f x) xs
 
 -- | Generate all prefixes of an infinite list.
+--
+-- >>> :set -XPostfixOperators
+-- >>> Data.List.Infinite.take 5 $ Data.List.Infinite.inits (0...)
+-- [[],[0],[0,1],[0,1,2],[0,1,2,3]]
+--
+-- If you need reversed prefixes, they can be generated cheaper using 'scanl'':
+--
+-- >>> :set -XPostfixOperators
+-- >>> Data.List.Infinite.take 5 $ Data.List.Infinite.scanl' (flip (:)) [] (0...)
+-- [[],[0],[1,0],[2,1,0],[3,2,1,0]]
+--
 inits :: Infinite a -> Infinite [a]
 inits =
   map (\(SnocBuilder _ front rear) -> front List.++ List.reverse rear)
