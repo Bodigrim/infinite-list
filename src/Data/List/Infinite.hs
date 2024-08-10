@@ -59,6 +59,7 @@ module Data.List.Infinite (
   subsequences,
   subsequences1,
   permutations,
+  cartesianProduct,
 
   -- * Building
   (...),
@@ -352,6 +353,11 @@ instance Functor Infinite where
   (<$) = const . repeat
 
 -- | This instance operates pointwise, similar to 'Control.Applicative.ZipList'.
+--
+-- Implementing it via cartesian product (as it happens for normal lists)
+-- is not practical because the product would never move beyond the first
+-- element of the input. But see 'cartesianProduct' for a lawless
+-- (namely, non-associative) variation of 'liftA2'.
 instance Applicative Infinite where
   pure = repeat
   (f :< fs) <*> (x :< xs) = f x :< (fs <*> xs)
@@ -852,7 +858,6 @@ groupBy f = go
 -- >>> :set -XPostfixOperators
 -- >>> Data.List.Infinite.take 5 $ Data.List.Infinite.scanl' (flip (:)) [] (0...)
 -- [[],[0],[1,0],[2,1,0],[3,2,1,0]]
---
 inits :: Infinite a -> Infinite [a]
 inits =
   map (\(SnocBuilder _ front rear) -> front List.++ List.reverse rear)
@@ -1253,3 +1258,28 @@ traverse_ = foldr . ((*>) .)
 -- @since 0.1.2
 for_ :: Applicative f => Infinite a -> (a -> f ()) -> f Void
 for_ = flip traverse_
+
+-- | 'cartesianProduct' @f@ @xs@ @ys@ builds
+-- a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product)
+-- of @xs@ and @ys@, applies @f@ to pairs and lists results in such order
+-- that whenever @x@ and @y@ have finite indices in the input sequences
+-- @f@ @x@ @y@ has a finite index in the output. This property does not hold
+-- for 'concatMap' @(\\y -> fmap (\`f\` y) xs)@ @ys@ because @xs@ could be
+-- infinite as well.
+--
+-- >>> :set -XOverloadedLists -XPostfixOperators
+-- >>> take 15 $ cartesianProduct (,) [0..4] (0...)
+-- [(0,0),(0,1),(1,0),(0,2),(1,1),(2,0),(0,3),(1,2),(2,1),(3,0),(0,4),(1,3),(2,2),(3,1),(4,0)]
+--
+-- 'cartesianProduct' is similar in spirit to the lawless 'liftA2'
+-- from [control-monad-omega](https://hackage.haskell.org/package/control-monad-omega).
+--
+-- No particular order of outputs is guaranteed, it can be affected by package
+-- configuration and change within the same major version of @infinite-list@.
+-- The only contract is the property above, that finite input indices
+-- generate a finite output index.
+--
+-- @since 0.1.2
+cartesianProduct :: (a -> b -> c) -> NonEmpty a -> Infinite b -> Infinite c
+cartesianProduct f xs (y :< ys) =
+  concatMap (NE.zipWith f xs) (scanl' (flip NE.cons) (y :| []) ys)

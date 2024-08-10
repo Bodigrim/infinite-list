@@ -63,6 +63,7 @@ test-suite infinite-properties
     build-depends:
         base,
         containers,
+        control-monad-omega,
         infinite-list,
         QuickCheck,
         tasty,
@@ -77,6 +78,7 @@ test-suite infinite-properties-O0
     build-depends:
         base,
         containers,
+        control-monad-omega,
         infinite-list,
         QuickCheck,
         tasty,
