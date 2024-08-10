@@ -24,6 +24,7 @@ import Test.Tasty.QuickCheck as QC
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Omega
 import Data.Bifunctor
 import Data.Bits
 import Data.Either
@@ -537,4 +538,11 @@ main = defaultMain $ testGroup "All"
     let ix = maxBound :: Word32 in
       finiteBitSize (0 :: Word) /= 32 ||
         I.head (I.tail (I.genericDrop ix (I.repeat () >>= const (False :< I.repeat True))))
+
+  , testProperty "cartesianProduct" $
+    \(xs :: NonEmpty Int) (Blind ys) ->
+      let f x y = x * 10 + y in
+      I.take 100 (I.cartesianProduct f xs ys) ===
+        L.take 100 (runOmega (liftA2 f (each (NE.toList xs)) (each (I.foldr (:) ys))))
+
   ]
