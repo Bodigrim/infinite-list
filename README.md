@@ -1,4 +1,4 @@
-# infinite-list
+# infinite-list [![Hackage](http://img.shields.io/hackage/v/infinite-list.svg)](https://hackage.haskell.org/package/infinite-list) [![Stackage LTS](http://stackage.org/package/infinite-list/badge/lts)](http://stackage.org/lts/package/infinite-list) [![Stackage Nightly](http://stackage.org/package/infinite-list/badge/nightly)](http://stackage.org/nightly/package/infinite-list)
 
 Modern lightweight library for infinite lists with fusion:
 
