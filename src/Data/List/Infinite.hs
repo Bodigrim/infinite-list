@@ -1,14 +1,18 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
+{-# OPTIONS_GHC -Wno-x-data-list-nonempty-unzip #-}
 
 {-# HLINT ignore "Redundant lambda" #-}
 {-# HLINT ignore "Avoid restricted function" #-}
+{-# HLINT ignore "Avoid NonEmpty.unzip" #-}
 
 -- |
 -- Copyright:   (c) 2022 Bodigrim
@@ -60,6 +64,7 @@ module Data.List.Infinite (
   subsequences1,
   permutations,
   cartesianProduct,
+  flatten,
 
   -- * Building
   (...),
@@ -375,6 +380,9 @@ instance Applicative Infinite where
 -- Bear in mind that this instance gets slow
 -- very soon because of linear indexing, so it is not recommended to be used
 -- in practice.
+--
+-- See 'flatten' for a lawless (namely, non-associative), but arguably
+-- more useful variation of 'Control.Monad.join'.
 instance Monad Infinite where
   xs >>= f = go 0 xs
     where
@@ -1283,3 +1291,28 @@ for_ = flip traverse_
 cartesianProduct :: (a -> b -> c) -> NonEmpty a -> Infinite b -> Infinite c
 cartesianProduct f xs (y :< ys) =
   concatMap (NE.zipWith f xs) (scanl' (flip NE.cons) (y :| []) ys)
+
+-- | 'flatten' @xss@ lists elements of @xxs@ in such order
+-- that whenever an element has finite indices in the input
+-- it has a finite index in the output. This property does not hold
+-- for 'concat' because a top-level 'NonEmpty' could be infinite as well.
+--
+-- >>> :set -XOverloadedLists -XPostfixOperators -XTupleSections
+-- >>> take 15 $ flatten $ fmap (\x -> fmap (x,) (0...)) [0..4]
+-- [(0,0),(0,1),(1,0),(0,2),(1,1),(2,0),(0,3),(1,2),(2,1),(3,0),(0,4),(1,3),(2,2),(3,1),(4,0)]
+--
+-- 'flatten' is similar in spirit to the lawless 'Control.Monad.join'
+-- from [control-monad-omega](https://hackage.haskell.org/package/control-monad-omega).
+--
+-- No particular order of outputs is guaranteed, it can be affected by package
+-- configuration and change within the same major version of @infinite-list@.
+-- The only contract is the property above, that finite input indices
+-- guarantee a finite output index.
+--
+-- @since 0.1.2
+flatten :: NonEmpty (Infinite a) -> Infinite a
+flatten ((x :< xs) :| xss) = x :< concat (zipWith (:|) xs (stripe xss))
+  where
+    stripe :: [Infinite a] -> Infinite [a]
+    stripe [] = repeat []
+    stripe ((y :< ys) : yss) = [y] :< zipWith (:) ys (stripe yss)
