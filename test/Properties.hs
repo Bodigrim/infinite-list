@@ -544,5 +544,13 @@ main = defaultMain $ testGroup "All"
       let f x y = x * 10 + y in
       I.take 100 (I.cartesianProduct f xs ys) ===
         L.take 100 (runOmega (liftA2 f (each (NE.toList xs)) (each (I.foldr (:) ys))))
-
+  , testProperty "flatten" $
+    \(xss :: NonEmpty (Blind (Infinite Int))) ->
+      I.take 100 (I.flatten (fmap getBlind xss)) ===
+        L.take 100 (runOmega (join (each (map (each . I.toList . getBlind) (NE.toList xss)))))
+  , testProperty "cartesianProduct vs. flatten" $
+    \(xs :: NonEmpty Int) (Blind ys) ->
+      let f x y = x * 10 + y in
+      I.take 100 (I.cartesianProduct f xs ys) ===
+        I.take 100 (I.flatten (fmap (\x -> fmap (\y -> f x y) ys) xs))
   ]
