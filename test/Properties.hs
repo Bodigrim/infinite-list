@@ -71,18 +71,18 @@ main = defaultMain $ testGroup "All"
       Just (fmap trim (I.uncons xs)) === L.uncons (trim1 xs)
 
   , testProperty "map" $
-    \(applyFun -> f :: Int -> Word) (Blind (xs :: Infinite Int)) ->
+    \(applyFun -> (f :: Int -> Word)) (Blind (xs :: Infinite Int)) ->
       trim (I.map f xs) === L.map f (trim xs)
 
   , testProperty "fmap" $
-    \(applyFun -> f :: Int -> Int) (Blind (xs :: Infinite Int)) ->
+    \(applyFun -> (f :: Int -> Int)) (Blind (xs :: Infinite Int)) ->
       trim (fmap f xs) === fmap f (trim xs)
   , testProperty "<$" $
     \(x :: Word) (Blind (xs :: Infinite Int)) ->
       trim (x <$ xs) === trim (fmap (const x) xs)
 
   , testProperty "pure" $
-    \(applyFun -> f :: Int -> Word) (x :: Int) ->
+    \(applyFun -> (f :: Int -> Word)) (x :: Int) ->
       trim (pure f <*> pure x) === trim (pure (f x))
   , testProperty "*>" $
     \(Blind (xs :: Infinite Int)) (Blind (ys :: Infinite Word)) ->
@@ -92,13 +92,13 @@ main = defaultMain $ testGroup "All"
       trim (xs <* ys) === trim (liftA2 const xs ys)
 
   , testProperty ">>= 1" $
-    \x ((I.cycle .) . applyFun -> k :: Int -> Infinite Word) ->
+    \x ((I.cycle .) . applyFun -> (k :: Int -> Infinite Word)) ->
       trim (return x >>= k) === trim (k x)
   , testProperty ">>= 2" $
     \(Blind (xs :: Infinite Int)) ->
       trim (xs >>= return) === trim xs
   , testProperty ">>= 3" $
-    \(Blind xs) ((I.cycle .) . applyFun -> k :: Int -> Infinite Word)  ((I.cycle .) . applyFun -> h :: Word -> Infinite Char) ->
+    \(Blind xs) ((I.cycle .) . applyFun -> (k :: Int -> Infinite Word))  ((I.cycle .) . applyFun -> (h :: Word -> Infinite Char)) ->
       trim (xs >>= (k >=> h)) === trim ((xs >>= k) >>= h)
   , testProperty ">>" $
     \(Blind (xs :: Infinite Int)) (Blind (ys :: Infinite Word)) ->
@@ -108,7 +108,7 @@ main = defaultMain $ testGroup "All"
     \(Blind (xs :: Infinite (NonEmpty Int))) ->
       trim (I.concat xs) === L.take 10 (L.concatMap NE.toList (I.toList xs))
   , testProperty "concatMap" $
-    \(applyFun -> f :: Int -> NonEmpty Word) (Blind xs) ->
+    \(applyFun -> (f :: Int -> NonEmpty Word)) (Blind xs) ->
       trim (I.concatMap f xs) === L.take 10 (L.concatMap (NE.toList . f) (I.toList xs))
 
   , testProperty "intersperse" $
@@ -137,10 +137,10 @@ main = defaultMain $ testGroup "All"
     I.head (I.interleave ('a' :< undefined) undefined) === 'a'
 
   , testProperty "transpose []" $
-    \(fmap getBlind -> xss :: [Infinite Int]) -> not (null xss) ==>
+    \(fmap getBlind -> (xss :: [Infinite Int])) -> not (null xss) ==>
       trim (I.transpose xss) === L.transpose (map trim xss)
   , testProperty "transpose NE" $
-    \(fmap getBlind -> xss :: NonEmpty (Infinite Int)) ->
+    \(fmap getBlind -> (xss :: NonEmpty (Infinite Int))) ->
       NE.fromList (trim (I.transpose xss)) === NE.transpose (NE.map (NE.fromList . trim) xss)
   , testProperty "transpose laziness 1" $ once $
     I.head (I.transpose ['a' :< undefined, 'b' :< undefined]) === "ab"
@@ -211,34 +211,34 @@ main = defaultMain $ testGroup "All"
       L.take 10 (I.toList xs) === trim xs
 
   , testProperty "scanl" $
-    \(curry . applyFun -> f :: Word -> Int -> Word) s (Blind xs) ->
+    \(curry . applyFun -> (f :: Word -> Int -> Word)) s (Blind xs) ->
       trim1 (I.scanl f s xs) === L.scanl f s (trim xs)
   , testProperty "scanl laziness" $ once $
     I.head (I.scanl undefined 'q' undefined) === 'q'
   , testProperty "scanl'" $
-    \(curry . applyFun -> f :: Word -> Int -> Word) s (Blind xs) ->
+    \(curry . applyFun -> (f :: Word -> Int -> Word)) s (Blind xs) ->
       trim1 (I.scanl' f s xs) === L.scanl' f s (trim xs)
   , testProperty "scanl' laziness" $ once $
     I.head (I.scanl' undefined 'q' undefined) === 'q'
   , testProperty "scanl1" $
-    \(curry . applyFun -> f :: Int -> Int -> Int) (Blind xs) ->
+    \(curry . applyFun -> (f :: Int -> Int -> Int)) (Blind xs) ->
       trim (I.scanl1 f xs) === L.scanl1 f (trim xs)
   , testProperty "scanl1 laziness" $ once $
     I.head (I.scanl1 undefined ('q' :< undefined)) === 'q'
 
   , testProperty "mapAccumL" $
-    \(curry . applyFun -> f :: Bool -> Int -> (Bool, Word)) (Blind xs) ->
+    \(curry . applyFun -> (f :: Bool -> Int -> (Bool, Word))) (Blind xs) ->
       trim (I.mapAccumL f False xs) === snd (L.mapAccumL f False (trim xs))
   , testProperty "mapAccumL laziness" $ once $
     I.head (I.mapAccumL (\_ x -> (undefined, x)) undefined ('q' :< undefined)) === 'q'
 
   , testProperty "iterate" $
-    \(applyFun -> f :: Int -> Int) s ->
+    \(applyFun -> (f :: Int -> Int)) s ->
       trim (I.iterate f s) === L.take 10 (L.iterate f s)
   , testProperty "iterate laziness" $ once $
       I.head (I.iterate undefined 'q') === 'q'
   , testProperty "iterate'" $
-    \(applyFun -> f :: Int -> Int) s ->
+    \(applyFun -> (f :: Int -> Int)) s ->
       trim (I.iterate' f s) === L.take 10 (L.iterate f s)
   , testProperty "iterate' laziness" $ once $
       I.head (I.iterate' undefined 'q') === 'q'
@@ -254,7 +254,7 @@ main = defaultMain $ testGroup "All"
     I.head (I.cycle ('q' :| undefined)) === 'q'
 
   , testProperty "unfoldr" $
-    \(applyFun -> f :: Word -> (Int, Word)) s ->
+    \(applyFun -> (f :: Word -> (Int, Word))) s ->
       trim (I.unfoldr f s) === L.take 10 (L.unfoldr (Just . f) s)
   , testProperty "unfoldr laziness" $ once $
     I.head (I.unfoldr (, undefined) 'q') === 'q'
@@ -281,7 +281,7 @@ main = defaultMain $ testGroup "All"
     fst (I.splitAt 1 ('q' :< undefined)) === "q"
 
   , testProperty "takeWhile" $
-    \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
+    \(applyFun -> (f :: Ordering -> Bool)) (Blind xs) ->
       L.take 10 (L.takeWhile f (I.foldr (:) xs)) ===
         L.take 10 (I.takeWhile f xs)
   , testProperty "takeWhile laziness 1" $ once $
@@ -289,23 +289,23 @@ main = defaultMain $ testGroup "All"
   , testProperty "takeWhile laziness 2" $ once $
       L.head (I.takeWhile (const True) ('q' :< undefined)) === 'q'
   , testProperty "fst . span" $
-    \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
+    \(applyFun -> (f :: Ordering -> Bool)) (Blind xs) ->
       let ys = L.take 10 (fst (I.span f xs)) in
         L.take 10 (L.takeWhile f (I.take (length ys + 10) xs)) ===
           L.take 10 (fst (I.span f xs))
   , testProperty "fst . break" $
-    \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
+    \(applyFun -> (f :: Ordering -> Bool)) (Blind xs) ->
       let ys = L.take 10 (fst (I.break f xs)) in
         L.take 10 (L.takeWhile (not . f) (I.take (length ys + 10) xs)) ===
           L.take 10 (fst (I.break f xs))
   , testProperty "dropWhile" $
-    \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
+    \(applyFun -> (f :: Ordering -> Bool)) (Blind xs) ->
       trim (L.foldr (:<) (I.dropWhile f xs) (I.takeWhile f xs)) === trim xs
   , testProperty "snd . span" $
-    \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
+    \(applyFun -> (f :: Ordering -> Bool)) (Blind xs) ->
       trim (L.foldr (:<) (snd (I.span f xs)) (I.takeWhile f xs)) === trim xs
   , testProperty "snd . break" $
-    \(applyFun -> f :: Ordering -> Bool) (Blind xs) ->
+    \(applyFun -> (f :: Ordering -> Bool)) (Blind xs) ->
       trim (L.foldr (:<) (snd (I.break f xs)) (I.takeWhile (not . f) xs)) === trim xs
   , testProperty "span laziness" $ once $
     L.head (fst (I.span (/= '\n') ('q' :< undefined))) === 'q'
@@ -352,7 +352,7 @@ main = defaultMain $ testGroup "All"
     \(Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
       I.heteroZip xs1 xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, (x1, x2))) (I.toList xs1) (Map.toList xs2))
   , testProperty "heteroZipWith" $
-    \(curry . applyFun -> f :: Int -> Word -> Char) (Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
+    \(curry . applyFun -> (f :: Int -> Word -> Char)) (Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
       I.heteroZipWith f xs1 xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, f x1 x2)) (I.toList xs1) (Map.toList xs2))
 
   , testProperty "heteroZip laziness" $
@@ -360,7 +360,7 @@ main = defaultMain $ testGroup "All"
       let xs1' = I.take (Map.size xs2) xs1 `I.prependList` undefined
       in I.heteroZip xs1' xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, (x1, x2))) (I.toList xs1) (Map.toList xs2))
   , testProperty "heteroZipWith laziness" $
-    \(curry . applyFun -> f :: Int -> Word -> Char) (Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
+    \(curry . applyFun -> (f :: Int -> Word -> Char)) (Blind (xs1 :: Infinite Int)) (xs2 :: Map Word Word) ->
       let xs1' = I.take (Map.size xs2) xs1 `I.prependList` undefined
       in I.heteroZipWith f xs1' xs2 === Map.fromList (L.zipWith (\x1 (k, x2) -> (k, f x1 x2)) (I.toList xs1) (Map.toList xs2))
 
@@ -413,7 +413,7 @@ main = defaultMain $ testGroup "All"
     \(Blind (ys :: Infinite Ordering)) ->
       trim (I.group ys) === L.take 10 (NE.group (I.foldr (:) ys))
   , testProperty "groupBy" $
-    \(curry . applyFun -> f :: Ordering -> Ordering -> Bool) (Blind ys) ->
+    \(curry . applyFun -> (f :: Ordering -> Ordering -> Bool)) (Blind ys) ->
       all (\x -> not $ all (f x) [minBound..maxBound]) [minBound..maxBound] ==>
         trim (I.groupBy f ys) === L.take 10 (NE.groupBy f (I.foldr (:) ys))
   , testProperty "group laziness" $ once $
@@ -486,11 +486,11 @@ main = defaultMain $ testGroup "All"
     I.find odd (1 :< undefined) === (1 :: Int)
 
   , testProperty "filter" $
-    \(applyFun -> f :: Int -> Bool) xs (Blind ys) ->
+    \(applyFun -> (f :: Int -> Bool)) xs (Blind ys) ->
       let us = L.filter f xs in
         us === I.take (length us) (I.filter f (I.prependList xs ys))
   , testProperty "mapMaybe" $
-    \(applyFun -> f :: Int -> Maybe Word) xs (Blind ys) ->
+    \(applyFun -> (f :: Int -> Maybe Word)) xs (Blind ys) ->
       let us = mapMaybe f xs in
         us === I.take (length us) (I.mapMaybe f (I.prependList xs ys))
   , testProperty "catMaybes" $
@@ -498,12 +498,12 @@ main = defaultMain $ testGroup "All"
       let us = catMaybes xs in
         us === I.take (length us) (I.catMaybes (I.prependList xs ys))
   , testProperty "partition" $
-    \(applyFun -> f :: Int -> Bool) xs (Blind ys) ->
+    \(applyFun -> (f :: Int -> Bool)) xs (Blind ys) ->
       let (us, vs) = L.partition f xs in
         let (us', vs') = I.partition f (I.prependList xs ys) in
           us === I.take (length us) us' .&&. vs === I.take (length vs) vs'
   , testProperty "mapEither" $
-    \(applyFun -> f :: Int -> Either Word Char) xs (Blind ys) ->
+    \(applyFun -> (f :: Int -> Either Word Char)) xs (Blind ys) ->
       let (us, vs) = mapEither f xs in
         let (us', vs') = I.mapEither f (I.prependList xs ys) in
           us === I.take (length us) us' .&&. vs === I.take (length vs) vs'
@@ -517,7 +517,7 @@ main = defaultMain $ testGroup "All"
     \(Blind (xs :: Infinite Int)) n ->
       xs I.!! n === I.foldr (:) xs L.!! fromIntegral n
   , testProperty "tabulate" $
-    \(applyFun -> f :: Word -> Char) n ->
+    \(applyFun -> (f :: Word -> Char)) n ->
       I.tabulate f I.!! n === f n
 
   , testProperty "elemIndex" $
