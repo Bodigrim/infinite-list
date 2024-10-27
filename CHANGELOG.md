@@ -3,6 +3,7 @@
 * Add `heteroZip` and `heteroZipWith`.
 * Add `traverse_` and `for_`.
 * Add `nubOrd` and `nubOrdBy`.
+* Add `instance MonadFix`.
 
 # 0.1.1
 

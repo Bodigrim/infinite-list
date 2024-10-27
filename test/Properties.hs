@@ -24,6 +24,7 @@ import Test.Tasty.QuickCheck as QC
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Fix (mfix)
 import Data.Bifunctor
 import Data.Bits
 import Data.Either
@@ -537,4 +538,7 @@ main = defaultMain $ testGroup "All"
     let ix = maxBound :: Word32 in
       finiteBitSize (0 :: Word) /= 32 ||
         I.head (I.tail (I.genericDrop ix (I.repeat () >>= const (False :< I.repeat True))))
+  , testProperty "mfix" $ once $
+    (L.take 5 $ fmap (L.take 5) $ mfix $ \fib -> L.map (\n -> 1 : n : L.zipWith (+) fib (L.drop 1 fib)) [2..]) ===
+      (I.take 5 $ fmap (I.take 5) $ mfix $ \fib -> I.map (\n -> 1 :< n :< I.zipWith (+) fib (I.drop 1 fib)) ((2 :: Int) I....))
   ]

@@ -160,13 +160,14 @@ import Control.Applicative (Applicative (..))
 import Control.Arrow (first, second)
 import Control.Exception (assert)
 import Control.Monad (Monad (..))
+import Control.Monad.Fix (MonadFix (..))
 import Data.Bits ((.&.))
 import Data.Char (Char, isSpace)
 import Data.Coerce (coerce)
 import Data.Either (Either, either)
 import Data.Eq (Eq, (/=), (==))
 import qualified Data.Foldable as F
-import Data.Function (($))
+import Data.Function (fix, ($))
 import Data.Functor (Functor (..))
 import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty (..))
@@ -370,13 +371,30 @@ instance Applicative Infinite where
 -- very soon because of linear indexing, so it is not recommended to be used
 -- in practice.
 instance Monad Infinite where
-  xs >>= f = go 0 xs
-    where
-      go !n (y :< ys) = (f y `index` n) :< go (n + 1) ys
-      index :: Infinite a -> Natural -> a
-      index ys n = head (genericDrop n ys)
+  xs >>= f = zipWith (\(!n) -> head . genericDrop n . f) ((...) (0 :: Natural)) xs
+  -- To put it simply, (xs >>= f) !! n = f (xs !! n) !! n
   {-# INLINE (>>=) #-}
   (>>) = (*>)
+
+-- | @since 0.1.2
+instance MonadFix Infinite where
+  mfix f = map (\(!n) -> fix $ head . genericDrop n . f) ((...) (0 :: Natural))
+  -- To put it simply, mfix f !! n = fix ((!! n) . f)
+  --
+  -- How to derive it? As in Section 1.4 of Erkok's thesis,
+  -- we can start by putting mfix f = fix (>>= f).
+  --
+  -- mfix f !! n
+  -- = fix (>>= f) !! n
+  -- = [by definition of fix, fix g = g (fix g)]
+  -- = (fix (>>= f) >>= f) !! n
+  -- = [by the choice of >>= above, (xs >>= g) !! n = g (xs !! n) !! n]
+  -- = f (fix (>>= f) !! n) !! n
+  -- = ((!! n) . f) (fix (>>= f) !! n)
+  -- = [restoring mfix from fix]
+  -- = ((!! n) . f) (mfix f !! n)
+  --
+  -- Then mfix f !! n = fix ((!! n) . f).
 
 -- | Get the first elements of an infinite list.
 head :: Infinite a -> a
@@ -852,7 +870,6 @@ groupBy f = go
 -- >>> :set -XPostfixOperators
 -- >>> Data.List.Infinite.take 5 $ Data.List.Infinite.scanl' (flip (:)) [] (0...)
 -- [[],[0],[1,0],[2,1,0],[3,2,1,0]]
---
 inits :: Infinite a -> Infinite [a]
 inits =
   map (\(SnocBuilder _ front rear) -> front List.++ List.reverse rear)
