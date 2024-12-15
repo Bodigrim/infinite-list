@@ -1,6 +1,6 @@
 cabal-version:   2.2
 name:            infinite-list
-version:         0.1.1
+version:         0.1.2
 license:         BSD-3-Clause
 license-file:    LICENSE
 maintainer:      andrew.lelechenko@gmail.com
