@@ -3,7 +3,7 @@
 Modern lightweight library for infinite lists with fusion:
 
 * API similar to `Data.List`.
-* No non-boot dependencies.
+* No dependencies other than `base`.
 * Top performance, driven by fusion.
 * Avoid dangerous instances like `Foldable`.
 * Use `NonEmpty` where applicable.

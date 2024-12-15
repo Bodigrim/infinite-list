@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
@@ -17,7 +16,7 @@
 -- Modern lightweight library for infinite lists with fusion:
 --
 -- * API similar to "Data.List".
--- * No non-boot dependencies.
+-- * No dependencies other than @base@.
 -- * Top performance, driven by fusion.
 -- * Avoid dangerous instances like `Data.Foldable.Foldable`.
 -- * Use `NonEmpty` where applicable.
@@ -176,15 +175,10 @@ import Data.Maybe (maybe)
 import Data.Ord (Ord, Ordering (..), compare, (<), (<=), (>), (>=))
 import qualified Data.Traversable as Traversable
 import Data.Void (Void)
+import GHC.Exts (oneShot)
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
 import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
-
-#if MIN_VERSION_base(4,10,0)
-import GHC.Exts (oneShot)
-#else
-import GHC.Magic (oneShot)
-#endif
 
 import Data.List.Infinite.Internal
 import qualified Data.List.Infinite.Set as Set
@@ -358,9 +352,7 @@ instance Applicative Infinite where
   (f :< fs) <*> (x :< xs) = f x :< (fs <*> xs)
   (<*) = const
   (*>) = const id
-#if MIN_VERSION_base(4,10,0)
   liftA2 = zipWith
-#endif
 
 -- | 'Control.Applicative.ZipList' cannot be made a lawful 'Monad',
 -- but 'Infinite', being a
