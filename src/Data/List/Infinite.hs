@@ -45,6 +45,7 @@ module Data.List.Infinite (
   scanl',
   scanl1,
   mapAccumL,
+  mapAccumL',
   traverse_,
   for_,
 
@@ -604,6 +605,14 @@ scanl1 f (x :< xs) = scanl f x xs
 -- If you are looking how to traverse with a state, look no further.
 mapAccumL :: (acc -> x -> (acc, y)) -> acc -> Infinite x -> Infinite y
 mapAccumL f = flip (foldr (\x acc s -> let (s', y) = f s x in y :< acc s'))
+
+-- | Same as 'mapAccumL', but strict in accumulator.
+mapAccumL' :: (acc -> x -> (acc, y)) -> acc -> Infinite x -> Infinite y
+mapAccumL' f = go
+  where
+    go !acc (x :< xs) =
+      let (acc', y) = f acc x
+      in  y :< go acc' xs
 
 mapAccumLFB :: (acc -> x -> (acc, y)) -> x -> (acc -> Infinite y) -> acc -> Infinite y
 mapAccumLFB f = \x r -> oneShot (\s -> let (s', y) = f s x in y :< r s')
