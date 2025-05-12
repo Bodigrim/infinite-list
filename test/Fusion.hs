@@ -84,10 +84,12 @@ mapAccumLRepeat :: Int -> Infinite Int
 mapAccumLRepeat n =
   I.mapAccumL (\acc x -> (acc, fromIntegral x)) 'q' (I.repeat (fromIntegral n :: Word))
 
+mapAccumLRepeat' :: Int -> Infinite Int
+mapAccumLRepeat' n =
+  I.mapAccumL' (\acc x -> (acc, fromIntegral x)) 'q' (I.repeat (fromIntegral n :: Word))
 
 takeFilterIterate :: [Int]
 takeFilterIterate = I.take 100 $ I.filter odd $ I.iterate (+ 1) 0
-
 
 sumTakeFilterIterate :: Int
 sumTakeFilterIterate = sum $ I.take 100 $ I.filter odd $ I.iterate (+ 1) 0
@@ -259,6 +261,7 @@ main = defaultMain $ testGroup "All"
   , $(inspectTest $ 'foldrCycle `hasNoType` ''Infinite)
   , $(inspectTest $ 'foldrWordsCycle `hasNoType` ''NonEmpty)
   , $(inspectTest $ 'mapAccumLRepeat `hasNoType` ''Word)
+  , $(inspectTest $ 'mapAccumLRepeat' `hasNoType` ''Word)
 
   , $(inspectTest $ 'takeFilterIterate `hasNoType` ''Infinite)
   , $(inspectTest $ 'sumTakeFilterIterate `hasNoTypes` [''Infinite, ''[]])
