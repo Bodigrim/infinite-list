@@ -233,6 +233,10 @@ main = defaultMain $ testGroup "All"
   , testProperty "mapAccumL laziness" $ once $
     I.head (I.mapAccumL (\_ x -> (undefined, x)) undefined ('q' :< undefined)) === 'q'
 
+  , testProperty "mapAccumL'" $
+    \(curry . applyFun -> (f :: Bool -> Int -> (Bool, Word))) (Blind xs) ->
+      trim (I.mapAccumL' f False xs) === snd (L.mapAccumL f False (trim xs))
+
   , testProperty "iterate" $
     \(applyFun -> (f :: Int -> Int)) s ->
       trim (I.iterate f s) === L.take 10 (L.iterate f s)

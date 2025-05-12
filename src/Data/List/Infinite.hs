@@ -45,6 +45,7 @@ module Data.List.Infinite (
   scanl',
   scanl1,
   mapAccumL,
+  mapAccumL',
   traverse_,
   for_,
 
@@ -620,6 +621,26 @@ mapAccumLFB f = \x r -> oneShot (\s -> let (s', y) = f s x in y :< r s')
   foldr (mapAccumLFB f) xs s =
     mapAccumL f s xs
   #-}
+
+-- | Same as 'mapAccumL', but strict in accumulator.
+mapAccumL' :: (acc -> x -> (acc, y)) -> acc -> Infinite x -> Infinite y
+mapAccumL' f = flip (foldr (\x acc !s -> let (s', y) = f s x in y :< acc s'))
+
+mapAccumL'FB :: (acc -> x -> (acc, y)) -> x -> (acc -> Infinite y) -> acc -> Infinite y
+mapAccumL'FB f = \x r -> oneShot (\(!s) -> let (s', y) = f s x in y :< r s')
+
+{-# NOINLINE [1] mapAccumL' #-}
+
+{-# INLINE [0] mapAccumL'FB #-}
+
+{-# RULES
+"mapAccumL'" [~1] forall f s xs.
+  mapAccumL' f s xs = foldr (mapAccumL'FB f) xs s
+
+"mapAccumL'List" [1] forall f s xs.
+  foldr (mapAccumL'FB f) xs s = mapAccumL' f s xs
+  #-}
+
 
 -- | Generate an infinite list of repeated applications.
 iterate :: (a -> a) -> a -> Infinite a
