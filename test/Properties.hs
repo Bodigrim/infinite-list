@@ -23,6 +23,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 
 import Control.Applicative
+import Control.Exception
 import Control.Monad
 import Control.Monad.Fix (mfix)
 import Data.Bifunctor
@@ -214,18 +215,23 @@ main = defaultMain $ testGroup "All"
   , testProperty "scanl" $
     \(curry . applyFun -> (f :: Word -> Int -> Word)) s (Blind xs) ->
       trim1 (I.scanl f s xs) === L.scanl f s (trim xs)
-  , testProperty "scanl laziness" $ once $
+  , testProperty "scanl laziness 1" $ once $
     I.head (I.scanl undefined 'q' undefined) === 'q'
+  , testProperty "scanl laziness 2" $ once $
+    I.head (I.tail (I.scanl (const (const 'q')) undefined (I.repeat 'z'))) === 'q'
+
   , testProperty "scanl'" $
     \(curry . applyFun -> (f :: Word -> Int -> Word)) s (Blind xs) ->
       trim1 (I.scanl' f s xs) === L.scanl' f s (trim xs)
-  , testProperty "scanl' laziness" $ once $
+  , testProperty "scanl' laziness 1" $ once $
     I.head (I.scanl' undefined 'q' undefined) === 'q'
   , testProperty "scanl1" $
     \(curry . applyFun -> (f :: Int -> Int -> Int)) (Blind xs) ->
       trim (I.scanl1 f xs) === L.scanl1 f (trim xs)
-  , testProperty "scanl1 laziness" $ once $
+  , testProperty "scanl1 laziness 1" $ once $
     I.head (I.scanl1 undefined ('q' :< undefined)) === 'q'
+  , testProperty "scanl1 laziness 2" $ once $
+    I.head (I.tail (I.scanl1 (const (const 'q')) (undefined :< I.repeat 'z'))) === 'q'
 
   , testProperty "mapAccumL" $
     \(curry . applyFun -> (f :: Bool -> Int -> (Bool, Word))) (Blind xs) ->
@@ -240,13 +246,25 @@ main = defaultMain $ testGroup "All"
   , testProperty "iterate" $
     \(applyFun -> (f :: Int -> Int)) s ->
       trim (I.iterate f s) === L.take 10 (L.iterate f s)
-  , testProperty "iterate laziness" $ once $
+  , testProperty "iterate laziness 1" $ once $
       I.head (I.iterate undefined 'q') === 'q'
+  , testProperty "iterate laziness 2" $ once $
+      I.head  (I.tail (I.iterate (\c -> if c == 'r' then undefined else 'r') 'q')) === 'r'
+  , testProperty "iterate laziness 3" $ once $
+    I.iterate (const 'q') undefined `seq` () === ()
+
   , testProperty "iterate'" $
     \(applyFun -> (f :: Int -> Int)) s ->
       trim (I.iterate' f s) === L.take 10 (L.iterate f s)
-  , testProperty "iterate' laziness" $ once $
+  , testProperty "iterate' laziness 1" $ once $
       I.head (I.iterate' undefined 'q') === 'q'
+  , testProperty "iterate' laziness 2" $ once $
+      I.head  (I.tail (I.iterate' (\c -> if c == 'r' then undefined else 'r') 'q')) === 'r'
+  , testProperty "iterate' laziness 3" $ once $ ioProperty $ do
+    xs <- try $ evaluate $ I.iterate' (const 'q') undefined
+    pure $ case xs of
+      Left (_ :: SomeException) -> True
+      _ -> False
 
   , testProperty "repeat" $
     \(s :: Int) ->
