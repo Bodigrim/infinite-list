@@ -179,7 +179,7 @@ import Data.Void (Void)
 import GHC.Exts (oneShot)
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
-import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||))
+import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||), seq)
 
 import Data.List.Infinite.Internal
 import qualified Data.List.Infinite.Set as Set
@@ -568,7 +568,7 @@ scanlFB f cons = \elt g -> oneShot (\x -> let elt' = f x elt in elt' `cons` g el
 
 -- | Same as 'Data.List.Infinite.scanl', but strict in accumulator.
 scanl' :: (b -> a -> b) -> b -> Infinite a -> Infinite b
-scanl' f z0 = (z0 :<) . flip (foldr (\x acc z -> let !fzx = f z x in fzx :< acc fzx)) z0
+scanl' f !z0 = (z0 :<) . flip (foldr (\x acc z -> let !fzx = f z x in fzx :< acc fzx)) z0
 
 scanlFB' :: (elt' -> elt -> elt') -> (elt' -> lst -> lst) -> elt -> (elt' -> lst) -> elt' -> lst
 scanlFB' f cons = \elt g -> oneShot (\x -> let !elt' = f x elt in elt' `cons` g elt')
@@ -580,7 +580,7 @@ scanlFB' f cons = \elt g -> oneShot (\x -> let !elt' = f x elt in elt' `cons` g 
 {-# RULES
 "scanl'" [~1] forall f a bs.
   scanl' f a bs =
-    build (\cons -> a `cons` foldr (scanlFB' f cons) bs a)
+    build (\cons -> a `seq` a `cons` foldr (scanlFB' f cons) bs a)
 "scanlList'" [1] forall f (a :: a) bs.
   foldr (scanlFB' f (:<)) bs a =
     tail (scanl' f a bs)

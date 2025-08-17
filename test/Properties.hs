@@ -225,6 +225,12 @@ main = defaultMain $ testGroup "All"
       trim1 (I.scanl' f s xs) === L.scanl' f s (trim xs)
   , testProperty "scanl' laziness 1" $ once $
     I.head (I.scanl' undefined 'q' undefined) === 'q'
+  , testProperty "scanl' laziness 2" $ once $ ioProperty $ do
+    x <- try $ evaluate $ I.scanl' (const (const 'q')) undefined (I.repeat 'z')
+    pure $ case x of
+      Left (_ :: SomeException) -> True
+      _ -> False
+
   , testProperty "scanl1" $
     \(curry . applyFun -> (f :: Int -> Int -> Int)) (Blind xs) ->
       trim (I.scanl1 f xs) === L.scanl1 f (trim xs)
