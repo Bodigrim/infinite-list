@@ -1,3 +1,9 @@
+# Unreleased
+
+* Add `mapAccumL'`.
+* Make `scanl'` stricter by forcing the initial element.
+  Cf. https://github.com/haskell/core-libraries-committee/issues/335
+
 # 0.1.2
 
 * Add `heteroZip` and `heteroZipWith`.
