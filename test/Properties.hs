@@ -2,6 +2,7 @@
 -- Copyright:   (c) 2022 Bodigrim
 -- Licence:     BSD3
 
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE PostfixOperators    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
@@ -45,8 +46,10 @@ instance Arbitrary a => Arbitrary (Infinite a) where
   arbitrary = (:<) <$> arbitrary <*> arbitrary
   shrink = const []
 
+#if !MIN_VERSION_QuickCheck(2,17,0)
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = (:|) <$> arbitrary <*> arbitrary
+#endif
 
 trim :: Infinite a -> [a]
 trim = I.take 10
