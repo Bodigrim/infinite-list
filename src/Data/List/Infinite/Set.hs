@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
 
 -- |
@@ -10,12 +11,11 @@ module Data.List.Infinite.Set (
   insert,
 ) where
 
-data Color = Red | Black
-  deriving (Show)
-
 -- | Okasaki red-black tree.
-data Set a = Empty | Node !Color !(Set a) !a !(Set a)
-  deriving (Show)
+data Set a
+  = Empty
+  | Red !(Set a) !a !(Set a)
+  | Black !(Set a) !a !(Set a)
 
 empty :: Set a
 empty = Empty
@@ -23,39 +23,55 @@ empty = Empty
 member :: (a -> a -> Ordering) -> a -> Set a -> Bool
 member cmp = member'
   where
-    member' x = go
+    member' !x = go
       where
         go = \case
           Empty -> False
-          Node _ left center right -> case cmp x center of
-            LT -> go left
-            EQ -> True
-            GT -> go right
+          Red left center right -> whereToGo left center right
+          Black left center right -> whereToGo left center right
+
+        whereToGo left center right = case x `cmp` center of
+          LT -> go left
+          EQ -> True
+          GT -> go right
+{-# INLINE member #-}
 
 insert :: (a -> a -> Ordering) -> a -> Set a -> Set a
 insert cmp = insert'
   where
-    insert' x = blacken . go
+    insert' !x = blacken . go
       where
-        go = \case
-          Empty -> Node Red Empty x Empty
-          Node color left center right -> case cmp x center of
-            LT -> balance color (go left) center right
-            EQ -> Node color left center right
-            GT -> balance color left center (go right)
+        go node = case node of
+          Empty -> Red Empty x Empty
+          Red left center right -> case x `cmp` center of
+            LT -> Red (go left) center right
+            EQ -> node
+            GT -> Red left center (go right)
+          Black left center right -> case x `cmp` center of
+            LT -> balanceLeft (go left) center right
+            EQ -> node
+            GT -> balanceRight left center (go right)
 
-    blacken = \case
+    blacken node = case node of
       Empty -> Empty
-      Node _ left center right -> Node Black left center right
+      Red left center right -> Black left center right
+      Black {} -> node
+{-# INLINE insert #-}
 
-balance :: Color -> Set a -> a -> Set a -> Set a
-balance Black (Node Red (Node Red a b c) d e) f g =
-  Node Red (Node Black a b c) d (Node Black e f g)
-balance Black (Node Red a b (Node Red c d e)) f g =
-  Node Red (Node Black a b c) d (Node Black e f g)
-balance Black a b (Node Red (Node Red c d e) f g) =
-  Node Red (Node Black a b c) d (Node Black e f g)
-balance Black a b (Node Red c d (Node Red e f g)) =
-  Node Red (Node Black a b c) d (Node Black e f g)
-balance color left center right =
-  Node color left center right
+balanceLeft :: Set a -> a -> Set a -> Set a
+balanceLeft (Red (Red a b c) d e) f g =
+  Red (Black a b c) d (Black e f g)
+balanceLeft (Red a b (Red c d e)) f g =
+  Red (Black a b c) d (Black e f g)
+balanceLeft left center right =
+  Black left center right
+{-# INLINE balanceLeft #-}
+
+balanceRight :: Set a -> a -> Set a -> Set a
+balanceRight a b (Red (Red c d e) f g) =
+  Red (Black a b c) d (Black e f g)
+balanceRight a b (Red c d (Red e f g)) =
+  Red (Black a b c) d (Black e f g)
+balanceRight left center right =
+  Black left center right
+{-# INLINE balanceRight #-}
