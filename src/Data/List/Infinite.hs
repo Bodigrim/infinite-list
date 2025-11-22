@@ -179,7 +179,7 @@ import Data.Void (Void)
 import GHC.Exts (oneShot)
 import qualified GHC.Exts
 import Numeric.Natural (Natural)
-import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, snd, uncurry, (&&), (+), (-), (.), (||), seq)
+import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, seq, snd, uncurry, (&&), (+), (-), (.), (||))
 
 import Data.List.Infinite.Internal
 import qualified Data.List.Infinite.Set as Set
@@ -372,22 +372,23 @@ instance Monad Infinite where
 -- | @since 0.1.2
 instance MonadFix Infinite where
   mfix f = map (\(!n) -> fix $ head . genericDrop n . f) ((...) (0 :: Natural))
-  -- To put it simply, mfix f !! n = fix ((!! n) . f)
-  --
-  -- How to derive it? As in Section 1.4 of Erkok's thesis,
-  -- we can start by putting mfix f = fix (>>= f).
-  --
-  -- mfix f !! n
-  -- = fix (>>= f) !! n
-  -- = [by definition of fix, fix g = g (fix g)]
-  -- = (fix (>>= f) >>= f) !! n
-  -- = [by the choice of >>= above, (xs >>= g) !! n = g (xs !! n) !! n]
-  -- = f (fix (>>= f) !! n) !! n
-  -- = ((!! n) . f) (fix (>>= f) !! n)
-  -- = [restoring mfix from fix]
-  -- = ((!! n) . f) (mfix f !! n)
-  --
-  -- Then mfix f !! n = fix ((!! n) . f).
+
+-- To put it simply, mfix f !! n = fix ((!! n) . f)
+--
+-- How to derive it? As in Section 1.4 of Erkok's thesis,
+-- we can start by putting mfix f = fix (>>= f).
+--
+-- mfix f !! n
+-- = fix (>>= f) !! n
+-- = [by definition of fix, fix g = g (fix g)]
+-- = (fix (>>= f) >>= f) !! n
+-- = [by the choice of >>= above, (xs >>= g) !! n = g (xs !! n) !! n]
+-- = f (fix (>>= f) !! n) !! n
+-- = ((!! n) . f) (fix (>>= f) !! n)
+-- = [restoring mfix from fix]
+-- = ((!! n) . f) (mfix f !! n)
+--
+-- Then mfix f !! n = fix ((!! n) . f).
 
 -- | Get the first elements of an infinite list.
 head :: Infinite a -> a
@@ -635,12 +636,12 @@ mapAccumL'FB f = \x r -> oneShot (\(!s) -> let (s', y) = f s x in y :< r s')
 
 {-# RULES
 "mapAccumL'" [~1] forall f s xs.
-  mapAccumL' f s xs = foldr (mapAccumL'FB f) xs s
-
+  mapAccumL' f s xs =
+    foldr (mapAccumL'FB f) xs s
 "mapAccumL'List" [1] forall f s xs.
-  foldr (mapAccumL'FB f) xs s = mapAccumL' f s xs
+  foldr (mapAccumL'FB f) xs s =
+    mapAccumL' f s xs
   #-}
-
 
 -- | Generate an infinite list of repeated applications.
 iterate :: (a -> a) -> a -> Infinite a
