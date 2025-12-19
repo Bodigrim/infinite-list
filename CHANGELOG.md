@@ -1,4 +1,4 @@
-# Unreleased
+# 0.1.3
 
 * Add `mapAccumL'`.
 * Make `scanl'` stricter by forcing the initial element.
