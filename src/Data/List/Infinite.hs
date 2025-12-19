@@ -624,6 +624,8 @@ mapAccumLFB f = \x r -> oneShot (\s -> let (s', y) = f s x in y :< r s')
   #-}
 
 -- | Same as 'mapAccumL', but strict in accumulator.
+--
+-- @since 0.1.3
 mapAccumL' :: (acc -> x -> (acc, y)) -> acc -> Infinite x -> Infinite y
 mapAccumL' f = flip (foldr (\x acc !s -> let (s', y) = f s x in y :< acc s'))
 
