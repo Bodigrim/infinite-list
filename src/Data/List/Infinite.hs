@@ -1021,7 +1021,7 @@ findIndex f = flip (foldr (\x acc !m -> if f x then m else acc (m + 1))) 0
 -- | Return indices of all elements, satisfying a predicate.
 --
 -- This function isn't productive
--- (e. g., 'Data.List.Infinite.head' '.'' 'Data.List.Infinite.findIndices' @f@ won't terminate),
+-- (e. g., 'Data.List.Infinite.head' '.' 'Data.List.Infinite.findIndices' @f@ won't terminate),
 -- if no elements of the input list satisfy the predicate.
 findIndices :: (a -> Bool) -> Infinite a -> Infinite Word
 findIndices f = flip (foldr (\x acc !m -> (if f x then (m :<) else id) (acc (m + 1)))) 0
