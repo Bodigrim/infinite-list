@@ -157,7 +157,6 @@ module Data.List.Infinite (
 ) where
 
 import Control.Applicative (Applicative (..))
-import Control.Arrow (first, second)
 import Control.Exception (assert)
 import Control.Monad (Monad (..))
 import Control.Monad.Fix (MonadFix (..))
@@ -184,6 +183,15 @@ import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable
 import Data.List.Infinite.Internal
 import qualified Data.List.Infinite.Set as Set
 import Data.List.Infinite.Zip
+
+-- Control.Arrow.{first,second} might change their laziness one day,
+-- so we define our own to ensure lazy pattern match on the tuple.
+
+first :: (a -> b) -> (a, c) -> (b, c)
+first f ~(a, c) = (f a, c)
+
+second :: (a -> b) -> (c, a) -> (c, b)
+second f ~(c, a) = (c, f a)
 
 -- | Right-associative fold of an infinite list, necessarily lazy in the accumulator.
 -- Any unconditional attempt to force the accumulator even
