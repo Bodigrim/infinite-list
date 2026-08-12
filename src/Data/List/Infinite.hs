@@ -4,10 +4,10 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Redundant lambda" #-}
-{-# HLINT ignore "Avoid restricted function" #-}
+{- HLINT ignore "Avoid restricted function" -}
+{- HLINT ignore "Redundant lambda" -}
+{- HLINT ignore "Use nubOrdBy" -}
 
 -- |
 -- Copyright:   (c) 2022 Bodigrim

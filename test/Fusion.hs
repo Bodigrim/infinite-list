@@ -5,6 +5,7 @@
 {-# LANGUAGE PostfixOperators #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -O -dsuppress-all -dno-suppress-type-signatures -fplugin=Test.Tasty.Inspection.Plugin #-}
+{- HLINT ignore "Use module export list" -}
 
 module Main where
 

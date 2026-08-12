@@ -12,12 +12,13 @@
 {-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
 {-# OPTIONS_GHC -Wno-x-partial #-}
 
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use <$>" #-}
-{-# HLINT ignore "Monad law, left identity" #-}
-{-# HLINT ignore "Monad law, right identity" #-}
+{- HLINT ignore "Use <$>" -}
+{- HLINT ignore "Monad law, left identity" -}
+{- HLINT ignore "Monad law, right identity" -}
 
-module Main where
+module Main
+  ( main
+  ) where
 
 import Test.QuickCheck.Function
 import Test.Tasty
