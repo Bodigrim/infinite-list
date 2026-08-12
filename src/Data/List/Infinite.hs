@@ -193,34 +193,6 @@ first f ~(a, c) = (f a, c)
 second :: (a -> b) -> (c, a) -> (c, b)
 second f ~(c, a) = (c, f a)
 
--- | Right-associative fold of an infinite list, necessarily lazy in the accumulator.
--- Any unconditional attempt to force the accumulator even
--- to the weak head normal form (WHNF)
--- will hang the computation. E. g., the following definition isn't productive:
---
--- > import Data.List.NonEmpty (NonEmpty(..))
--- > toNonEmpty = foldr (\a (x :| xs) -> a :| x : xs) :: Infinite a -> NonEmpty a
---
--- One should use lazy patterns, e. g.,
---
--- > toNonEmpty = foldr (\a ~(x :| xs) -> a :| x : xs)
---
--- This is a catamorphism on infinite lists.
-foldr :: (a -> b -> b) -> Infinite a -> b
-foldr f = go
-  where
-    go (x :< xs) = f x (go xs)
-{-# INLINE [0] foldr #-}
-
-{-# RULES
-"foldr/build" forall cons (g :: forall b. (a -> b -> b) -> b).
-  foldr cons (build g) =
-    g cons
-"foldr/cons/build" forall cons x (g :: forall b. (a -> b -> b) -> b).
-  foldr cons (x :< build g) =
-    cons x (g cons)
-  #-}
-
 -- | Paramorphism on infinite lists.
 para :: forall a b. (a -> Infinite a -> b -> b) -> Infinite a -> b
 para f = go
