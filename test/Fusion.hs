@@ -161,11 +161,21 @@ zeros :: Infinite Word
 zeros = I.repeat 0
 {-# NOINLINE zeros #-}
 
-zipWithRepeat1 :: Infinite Bool
-zipWithRepeat1 = I.zipWith (\x y -> x == fromIntegral y) (I.repeat (1 :: Int)) zeros
+ones :: Infinite Int
+ones = I.repeat 1
+{-# NOINLINE ones #-}
 
-zipWithRepeat2 :: Infinite Bool
-zipWithRepeat2 = I.zipWith (\x y -> y == fromIntegral x) zeros (I.repeat (1 :: Int))
+zipWithRepeatNoFusion :: Infinite Bool
+zipWithRepeatNoFusion = I.zipWith (\x y -> x == fromIntegral y) ones zeros
+
+zipWithRepeatFuseLeft :: Infinite Bool
+zipWithRepeatFuseLeft = I.zipWith (\x y -> x == fromIntegral y) (I.repeat (1 :: Int)) zeros
+
+zipWithRepeatFuseRight :: Infinite Bool
+zipWithRepeatFuseRight = I.zipWith (\x y -> x == fromIntegral y) ones (I.repeat (0 :: Word))
+
+zipWithRepeatFuseBoth :: Infinite Bool
+zipWithRepeatFuseBoth = I.zipWith (\x y -> x == fromIntegral y) (I.repeat (1 :: Int)) (I.repeat (0 :: Word))
 
 zipWith3Repeat1 :: Infinite Bool
 zipWith3Repeat1 = I.zipWith3 (\x y z -> x == fromIntegral (y + z)) (I.repeat (1 :: Int)) zeros zeros
@@ -289,8 +299,11 @@ main = defaultMain $ testGroup "All"
   , $(inspectTest $ 'headMapZipIterate `hasNoType` ''Word)
   , $(inspectTest $ 'headMapFlipZipIterate `hasNoType` ''Int)
 
-  , $(inspectTest $ 'zipWithRepeat1  `hasNoType` ''Int)
-  , $(inspectTest $ 'zipWithRepeat2  `hasNoType` ''Int)
+  , $(inspectTest $ 'zipWithRepeatNoFusion  `hasNoType` ''Int)
+  , $(inspectTest $ 'zipWithRepeatFuseLeft  `hasNoType` ''Int)
+  , $(inspectTest $ 'zipWithRepeatFuseRight  `hasNoType` ''Int)
+  , $(inspectTest $ 'zipWithRepeatFuseBoth  `hasNoType` ''Int)
+
   , $(inspectTest $ 'zipWith3Repeat1 `hasNoType` ''Int)
   , $(inspectTest $ 'zipWith3Repeat2 `hasNoType` ''Int)
   , $(inspectTest $ 'zipWith3Repeat3 `hasNoType` ''Int)

@@ -1,6 +1,7 @@
 -- |
 -- Copyright:   (c) 2022 Bodigrim
 -- License:     BSD3
+{- HLINT ignore "Redundant lambda" -}
 module Data.List.Infinite.Zip (
   zip,
   zipWith,
@@ -31,20 +32,23 @@ zipWith fun = go
   where
     go (a :< as) (b :< bs) = fun a b :< go as bs
 
-zipWithFB :: (elt -> lst -> lst') -> (a -> b -> elt) -> a -> b -> lst -> lst'
-zipWithFB = (.) . (.)
+newtype Z a b = Z (a -> (Z a b -> b) -> b)
+
+pushUnZ :: a -> (Z a r -> r) -> Z a r -> r
+pushUnZ x xk = \(Z yk) -> yk x xk
+{-# INLINE [0] pushUnZ #-} -- could be NOINLINE [0]
+
+pushZ :: (a -> b -> c) -> (c -> r -> r) -> b -> Z a r -> Z a r
+pushZ f c = \y yk -> Z (\x xk -> f x y `c` xk yk)
+{-# INLINE [0] pushZ #-} -- could be NOINLINE [0]
 
 {-# NOINLINE [1] zipWith #-}
 
-{-# INLINE [0] zipWithFB #-}
-
 {-# RULES
-"zipWith" [~1] forall f xs ys.
-  zipWith f xs ys =
-    build (\cons -> foldr2 (zipWithFB cons f) xs ys)
-"zipWithList" [1] forall f.
-  foldr2 (zipWithFB (:<) f) =
-    zipWith f
+"zipWith to pushUnZ/pushZ" [~1] forall f as bs.
+  zipWith f as bs = build (\c -> foldr pushUnZ as (foldr (pushZ f c) bs))
+"pushZ/pushUnZ to zipWith" [1] forall f as bs.
+  foldr pushUnZ as (foldr (pushZ f (:<)) bs) = zipWith f as bs
   #-}
 
 foldr2 :: (elt1 -> elt2 -> lst -> lst) -> Infinite elt1 -> Infinite elt2 -> lst
