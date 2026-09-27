@@ -54,6 +54,7 @@ module Data.List.Infinite (
   concatMap,
   intersperse,
   intercalate,
+  splitOn,
   interleave,
   transpose,
   subsequences,
@@ -181,6 +182,7 @@ import Numeric.Natural (Natural)
 import Prelude (Bool (..), Enum, Int, Integer, Integral, Maybe (..), Traversable, Word, const, enumFrom, enumFromThen, flip, fromIntegral, id, maxBound, minBound, not, otherwise, seq, snd, uncurry, (&&), (+), (-), (.), (||))
 
 import Data.List.Infinite.Internal
+import Data.List.Infinite.KnuthMorrisPratt (splitOn)
 import qualified Data.List.Infinite.Set as Set
 import Data.List.Infinite.Zip
 
