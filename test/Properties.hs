@@ -58,9 +58,6 @@ trim = I.take 10
 trim1 :: Infinite a -> [a]
 trim1 = I.take 11
 
-mapMapFusion :: Infinite Int -> Infinite Int
-mapMapFusion xs = I.map fromIntegral (I.map fromIntegral xs :: Infinite Word)
-
 mapEither :: (a -> Either b c) -> [a] -> ([b], [c])
 mapEither f = foldr (either (first . (:)) (second . (:)) . f) ([], [])
 
