@@ -570,4 +570,11 @@ main = defaultMain $ testGroup "All"
   , testProperty "mfix" $ once $
     (L.take 5 $ fmap (L.take 5) $ mfix $ \fib -> L.map (\n -> 1 : n : L.zipWith (+) fib (L.drop 1 fib)) [2..]) ===
       (I.take 5 $ fmap (I.take 5) $ mfix $ \fib -> I.map (\n -> 1 :< n :< I.zipWith (+) fib (I.drop 1 fib)) ((2 :: Int) I....))
+
+  , testProperty "splitOn 1" $
+    \(needle :: NonEmpty Bool) (Blind (hay :: Infinite Bool)) ->
+      not $ map Just (NE.toList needle) `L.isInfixOf` I.take 1000 (I.intercalate (pure Nothing) (fmap (map Just) (I.splitOn needle hay)))
+  , testProperty "splitOn 2" $
+    \(needle :: NonEmpty Bool) (Blind (hay :: Infinite Bool)) ->
+      I.take 1000 hay === I.take 1000 (I.intercalate needle (I.splitOn needle hay))
   ]

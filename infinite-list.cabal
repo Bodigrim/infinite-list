@@ -44,12 +44,16 @@ library
     hs-source-dirs:   src
     other-modules:
         Data.List.Infinite.Internal
+        Data.List.Infinite.KnuthMorrisPratt
         Data.List.Infinite.Set
         Data.List.Infinite.Zip
 
     default-language: Haskell2010
     ghc-options:      -Wall
     build-depends:    base >=4.10 && <5
+
+    if impl(ghc <9.4)
+        build-depends: data-array-byte <0.2
 
 test-suite infinite-properties
     type:             exitcode-stdio-1.0
