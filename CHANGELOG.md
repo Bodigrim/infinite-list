@@ -1,3 +1,7 @@
+# 0.1.4
+
+* Add `splitOn`.
+
 # 0.1.3
 
 * Add `mapAccumL'`.

@@ -123,6 +123,8 @@ buildJumps ws = runST $ do
 
 -- | Split on the given sublist.
 -- Right inverse of 'Data.List.Infinite.intercalate'.
+--
+-- @since 0.1.4
 splitOn :: forall a. Eq a => NonEmpty a -> Infinite a -> Infinite [a]
 splitOn needle' haystack = go 0 haystack
   where
